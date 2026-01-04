@@ -18,30 +18,30 @@ export default function App() {
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
-          <NavItem 
-            active={view === 'inventory'} 
-            onClick={() => setView('inventory')} 
-            icon={<BoxIcon />} 
-            label="Estoque" 
+          <NavItem
+            active={view === 'inventory'}
+            onClick={() => setView('inventory')}
+            icon={<BoxIcon />}
+            label="Estoque"
           />
-          <NavItem 
-            active={view === 'sales'} 
-            onClick={() => setView('sales')} 
-            icon={<ShoppingBagIcon />} 
-            label="Vendas" 
+          <NavItem
+            active={view === 'sales'}
+            onClick={() => setView('sales')}
+            icon={<ShoppingBagIcon />}
+            label="Vendas"
           />
           <div className="pt-4 mt-4 border-t border-slate-800">
-            <NavItem 
-                active={view === 'admin'} 
-                onClick={() => setView('admin')} 
-                icon={<ChartIcon />} 
-                label="Administrador" 
+            <NavItem
+              active={view === 'admin'}
+              onClick={() => setView('admin')}
+              icon={<ChartIcon />}
+              label="Administrador"
             />
           </div>
         </nav>
 
         <div className="p-4 border-t border-slate-800 text-xs text-slate-500 text-center md:text-left">
-          <span className="hidden md:inline">Versão 1.0.0</span>
+          <span className="hidden md:inline font-bold text-emerald-400">Versão 2.0 (Realtime)</span>
         </div>
       </aside>
 
@@ -59,13 +59,12 @@ export default function App() {
 
 // Nav Helper Component
 const NavItem = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
-  <button 
+  <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-      active 
-        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' 
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
+        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
         : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-    }`}
+      }`}
   >
     <span className={`${active ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>
       {icon}
