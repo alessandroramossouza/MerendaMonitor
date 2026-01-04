@@ -41,7 +41,10 @@ export default function App() {
         </nav>
 
         <div className="p-4 border-t border-slate-800 text-xs text-slate-500 text-center md:text-left">
-          <span className="hidden md:inline font-bold text-emerald-400">Versão 2.0 (Realtime)</span>
+          <span className="hidden md:inline font-bold text-emerald-400">Versão 2.1 (Debug)</span>
+          <div className="mt-2 text-[10px] text-slate-600 font-mono">
+            DB: {import.meta.env.VITE_SUPABASE_URL ? 'Linked ✅' : 'Missing ❌'}
+          </div>
         </div>
       </aside>
 
@@ -62,8 +65,8 @@ const NavItem = ({ active, onClick, icon, label }: { active: boolean, onClick: (
   <button
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
-        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
-        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+      ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
+      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
       }`}
   >
     <span className={`${active ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>
