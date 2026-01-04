@@ -64,10 +64,15 @@ export const AdminPage: React.FC = () => {
     <div className="space-y-8">
       <header className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <ChartIcon className="text-purple-600" />
-            Painel Administrativo
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+              <ChartIcon className="text-purple-600" />
+              Painel Administrativo
+            </h2>
+            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200">
+              v2.0 ONLINE
+            </span>
+          </div>
           <p className="text-slate-500">Acompanhe o lucro e performance da loja.</p>
         </div>
         <button

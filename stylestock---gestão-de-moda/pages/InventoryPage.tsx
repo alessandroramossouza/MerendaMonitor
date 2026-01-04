@@ -58,11 +58,18 @@ export const InventoryPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <header>
-        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <BoxIcon className="text-blue-600" />
-          Gerenciar Estoque
-        </h2>
-        <p className="text-slate-500">Cadastre novas roupas e controle a entrada de mercadorias.</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+              <BoxIcon className="text-blue-600" />
+              Gerenciar Estoque
+            </h2>
+            <p className="text-slate-500">Cadastre novas roupas e controle a entrada de mercadorias.</p>
+          </div>
+          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200 animate-pulse">
+            ● v2.0 ONLINE
+          </span>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
