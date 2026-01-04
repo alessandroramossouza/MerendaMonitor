@@ -144,3 +144,31 @@ export const processSale = async (
 
   return mapSaleFromDB(saleData);
 };
+
+// --- REALTIME SUBSCRIPTIONS ---
+
+export const subscribeToProducts = (onUpdate: () => void) => {
+  const subscription = supabase
+    .channel('products-channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: PRODUCTS_TABLE }, () => {
+      onUpdate();
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(subscription);
+  };
+};
+
+export const subscribeToSales = (onUpdate: () => void) => {
+  const subscription = supabase
+    .channel('sales-channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: SALES_TABLE }, () => {
+      onUpdate();
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(subscription);
+  };
+};
