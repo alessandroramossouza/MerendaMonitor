@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSales, getProducts } from '../services/dataService';
+import { getSales, getProducts, subscribeToSales, subscribeToProducts } from '../services/dataService';
 import { analyzeBusinessData } from '../services/geminiService';
 import { Sale, Product } from '../types';
 import { ChartIcon, SparklesIcon } from '../components/Icons';
@@ -9,13 +9,21 @@ export const AdminPage: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Analysis State
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
     loadData();
+
+    const unsubSales = subscribeToSales(() => loadData());
+    const unsubProducts = subscribeToProducts(() => loadData());
+
+    return () => {
+      unsubSales();
+      unsubProducts();
+    };
   }, []);
 
   const loadData = async () => {
@@ -62,11 +70,11 @@ export const AdminPage: React.FC = () => {
           </h2>
           <p className="text-slate-500">Acompanhe o lucro e performance da loja.</p>
         </div>
-        <button 
-            onClick={loadData}
-            className="text-sm text-blue-600 hover:underline"
+        <button
+          onClick={loadData}
+          className="text-sm text-blue-600 hover:underline"
         >
-            Atualizar Dados
+          Atualizar Dados
         </button>
       </header>
 
@@ -99,7 +107,7 @@ export const AdminPage: React.FC = () => {
             Histórico de Vendas
           </div>
           <div className="overflow-auto flex-1 p-0">
-             <table className="w-full text-left text-sm text-slate-600">
+            <table className="w-full text-left text-sm text-slate-600">
               <thead className="bg-slate-50 text-slate-500 text-xs uppercase sticky top-0">
                 <tr>
                   <th className="px-4 py-2">Produto</th>
@@ -132,7 +140,7 @@ export const AdminPage: React.FC = () => {
               <SparklesIcon className="text-yellow-400" />
               IA Smart Insights
             </h3>
-            <button 
+            <button
               onClick={handleRunAnalysis}
               disabled={analyzing || sales.length === 0}
               className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded-full text-xs font-medium transition-colors disabled:opacity-50"
@@ -140,10 +148,10 @@ export const AdminPage: React.FC = () => {
               {analyzing ? 'Analisando...' : 'Gerar Relatório'}
             </button>
           </div>
-          
+
           <div className="flex-1 bg-white/5 rounded-lg p-4 overflow-y-auto text-sm leading-relaxed border border-white/10">
             {aiAnalysis ? (
-               <div dangerouslySetInnerHTML={{ __html: aiAnalysis }} className="space-y-2 [&_strong]:text-yellow-200 [&_ul]:list-disc [&_ul]:pl-4" />
+              <div dangerouslySetInnerHTML={{ __html: aiAnalysis }} className="space-y-2 [&_strong]:text-yellow-200 [&_ul]:list-disc [&_ul]:pl-4" />
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-white/50 text-center">
                 <p>Clique em "Gerar Relatório" para usar o Gemini AI.</p>
@@ -153,29 +161,29 @@ export const AdminPage: React.FC = () => {
           </div>
         </div>
       </div>
-      
-       {/* Simple Chart */}
+
+      {/* Simple Chart */}
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <h3 className="font-semibold text-slate-700 mb-4">Top 5 Produtos por Lucratividade</h3>
         <div className="h-64 w-full">
-            {sales.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`} />
-                    <Tooltip 
-                        contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                        formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Lucro']}
-                    />
-                    <Bar dataKey="profit" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
-                </BarChart>
-                </ResponsiveContainer>
-            ) : (
-                <div className="h-full flex items-center justify-center text-slate-400">
-                    Registre vendas para ver o gráfico.
-                </div>
-            )}
+          {sales.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                  formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Lucro']}
+                />
+                <Bar dataKey="profit" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-slate-400">
+              Registre vendas para ver o gráfico.
+            </div>
+          )}
         </div>
       </div>
     </div>

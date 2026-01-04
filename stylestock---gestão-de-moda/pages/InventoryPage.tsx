@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { getProducts, addProduct } from '../services/dataService';
+import { getProducts, addProduct, subscribeToProducts } from '../services/dataService';
 import { Product } from '../types';
 import { PlusIcon, BoxIcon } from '../components/Icons';
 
 export const InventoryPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Form State
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -16,6 +16,10 @@ export const InventoryPage: React.FC = () => {
 
   useEffect(() => {
     loadProducts();
+    const unsubscribe = subscribeToProducts(() => {
+      loadProducts();
+    });
+    return () => unsubscribe();
   }, []);
 
   const loadProducts = async () => {
@@ -37,13 +41,13 @@ export const InventoryPage: React.FC = () => {
         stock: Number(stock),
         category
       });
-      
+
       // Reset Form
       setCode('');
       setName('');
       setCostPrice('');
       setStock('');
-      
+
       // Refresh list
       loadProducts();
     } catch (error) {
@@ -68,8 +72,8 @@ export const InventoryPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Código da Roupa</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="Ex: LC-CAM-001"
@@ -80,8 +84,8 @@ export const InventoryPage: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Nome / Descrição</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ex: Camiseta Lacoste Preta M"
@@ -93,8 +97,8 @@ export const InventoryPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Custo (R$)</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   step="0.01"
                   value={costPrice}
                   onChange={(e) => setCostPrice(e.target.value)}
@@ -105,8 +109,8 @@ export const InventoryPage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Quantidade</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   value={stock}
                   onChange={(e) => setStock(e.target.value)}
                   placeholder="0"
@@ -116,8 +120,8 @@ export const InventoryPage: React.FC = () => {
               </div>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
             >
               <PlusIcon className="w-4 h-4" />
