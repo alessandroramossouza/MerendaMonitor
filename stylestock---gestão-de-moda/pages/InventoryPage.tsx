@@ -279,43 +279,108 @@ export const InventoryPage: React.FC = () => {
       </header>
 
       {/* Add Product Form */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-lg mb-4 text-slate-700">Novo Item</h3>
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 items-end">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Código</label>
-            <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="LC-001"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
-          </div>
-          <div className="md:col-span-2 lg:col-span-1">
-            <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Camiseta Lacoste"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Custo (R$)</label>
-            <input type="number" step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="0.00"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Margem (%)</label>
-            <input type="number" value={margin} onChange={(e) => setMargin(e.target.value)} placeholder="50"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Preço Sugerido</label>
-            <div className="px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 font-medium">
-              R$ {suggestedPrice.toFixed(2)}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+          <h3 className="font-semibold text-lg text-white flex items-center gap-2">
+            <PlusIcon className="w-5 h-5" />
+            Cadastrar Novo Produto
+          </h3>
+          <p className="text-blue-100 text-sm">Preencha os dados do produto para adicionar ao estoque</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6">
+          {/* Row 1: Basic Info */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                📦 Código do Produto
+              </label>
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="Ex: LC-CAM-001"
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all bg-slate-50 hover:bg-white"
+                required
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                🏷️ Nome / Descrição
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Camiseta Lacoste Polo Preta Tamanho M"
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all bg-slate-50 hover:bg-white"
+                required
+              />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Quantidade</label>
-            <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="0"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+
+          {/* Row 2: Pricing & Stock */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                💰 Custo (R$)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={costPrice}
+                onChange={(e) => setCostPrice(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all bg-slate-50 hover:bg-white text-center font-medium"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                📊 Margem (%)
+              </label>
+              <input
+                type="number"
+                value={margin}
+                onChange={(e) => setMargin(e.target.value)}
+                placeholder="50"
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all bg-slate-50 hover:bg-white text-center font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-emerald-700 mb-2">
+                ✨ Preço de Venda
+              </label>
+              <div className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-emerald-100 border-2 border-emerald-200 rounded-xl text-emerald-700 font-bold text-center text-lg">
+                R$ {suggestedPrice.toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                📦 Quantidade
+              </label>
+              <input
+                type="number"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+                placeholder="0"
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all bg-slate-50 hover:bg-white text-center font-medium"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span>Cadastrar</span>
+            </button>
           </div>
-          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors h-[42px]">
-            <PlusIcon className="w-4 h-4" /> Cadastrar
-          </button>
+
+          {/* Helper text */}
+          <p className="text-xs text-slate-400 mt-4 text-center">
+            💡 O preço de venda é calculado automaticamente: Custo + Margem%
+          </p>
         </form>
       </div>
 

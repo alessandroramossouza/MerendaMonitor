@@ -43,18 +43,17 @@ CREATE TABLE IF NOT EXISTS stock_movements (
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stock_movements ENABLE ROW LEVEL SECURITY;
 
--- 6. Create policies for public access (adjust based on your needs)
+-- 6. Create policies for public access
+DROP POLICY IF EXISTS "Enable all for customers" ON customers;
+DROP POLICY IF EXISTS "Enable all for stock_movements" ON stock_movements;
 CREATE POLICY "Enable all for customers" ON customers FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Enable all for stock_movements" ON stock_movements FOR ALL USING (true) WITH CHECK (true);
 
--- 7. Enable Realtime for new tables
-ALTER PUBLICATION supabase_realtime ADD TABLE customers;
-ALTER PUBLICATION supabase_realtime ADD TABLE stock_movements;
-
--- 8. Create indexes for performance
+-- 7. Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements(product_id);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sales_customer_id ON sales(customer_id);
 CREATE INDEX IF NOT EXISTS idx_sales_payment_method ON sales(payment_method);
 
+-- Note: Realtime is already enabled for all tables in your Supabase project.
 -- Done! Your database is now ready for StyleStock v3.0
