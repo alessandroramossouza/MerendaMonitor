@@ -79,6 +79,37 @@ export const updateProductStock = async (id: string, newStock: number): Promise<
   }
 };
 
+export const updateProduct = async (id: string, product: Partial<Omit<Product, 'id' | 'createdAt'>>): Promise<void> => {
+  const dbProduct: Record<string, any> = {};
+  if (product.code !== undefined) dbProduct.code = product.code;
+  if (product.name !== undefined) dbProduct.name = product.name;
+  if (product.costPrice !== undefined) dbProduct.cost_price = product.costPrice;
+  if (product.stock !== undefined) dbProduct.stock = product.stock;
+  if (product.category !== undefined) dbProduct.category = product.category;
+
+  const { error } = await supabase
+    .from(PRODUCTS_TABLE)
+    .update(dbProduct)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating product:', error);
+    throw error;
+  }
+};
+
+export const deleteProduct = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from(PRODUCTS_TABLE)
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting product:', error);
+    throw error;
+  }
+};
+
 // --- SALES ---
 
 export const getSales = async (): Promise<Sale[]> => {
