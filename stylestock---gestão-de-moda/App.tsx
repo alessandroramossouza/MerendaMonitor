@@ -4,6 +4,7 @@ import { InventoryPage } from './pages/InventoryPage';
 import { SalesPage } from './pages/SalesPage';
 import { AdminPage } from './pages/AdminPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { LoginPage, User } from './pages/LoginPage';
 import { BoxIcon, ShoppingBagIcon, ChartIcon } from './components/Icons';
 
 // Report Icon
@@ -13,8 +14,41 @@ const FileTextIcon = () => (
   </svg>
 );
 
+// Logout Icon
+const LogoutIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+  </svg>
+);
+
+// User Icon
+const UserIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+
 export default function App() {
   const [view, setView] = useState<ViewState>('inventory');
+  const [user, setUser] = useState<User | null>(null);
+
+  const handleLogin = (loggedInUser: User) => {
+    setUser(loggedInUser);
+    setView('inventory');
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setView('inventory');
+  };
+
+  // Show login page if not authenticated
+  if (!user) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
+  // Check if user has access to admin page
+  const hasAdminAccess = user.role === 'admin';
 
   return (
     <div className="flex h-screen w-full bg-slate-50 text-slate-900">
@@ -45,19 +79,42 @@ export default function App() {
               icon={<FileTextIcon />}
               label="Relatórios"
             />
-            <NavItem
-              active={view === 'admin'}
-              onClick={() => setView('admin')}
-              icon={<ChartIcon />}
-              label="Administrador"
-            />
+            {hasAdminAccess && (
+              <NavItem
+                active={view === 'admin'}
+                onClick={() => setView('admin')}
+                icon={<ChartIcon />}
+                label="Administrador"
+              />
+            )}
           </div>
         </nav>
 
-        <div className="p-4 border-t border-slate-800 text-xs text-slate-500 text-center md:text-left">
-          <span className="hidden md:inline font-bold text-emerald-400">Versão 2.1 (Debug)</span>
-          <div className="mt-2 text-[10px] text-slate-600 font-mono">
-            DB: {import.meta.env.VITE_SUPABASE_URL ? 'Linked ✅' : 'Missing ❌'}
+        {/* User Info & Logout */}
+        <div className="p-4 border-t border-slate-800">
+          <div className="flex items-center gap-3 mb-3">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${user.role === 'admin' ? 'bg-purple-600' : 'bg-emerald-600'
+              }`}>
+              <UserIcon />
+            </div>
+            <div className="hidden md:block flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">{user.name}</p>
+              <p className={`text-xs ${user.role === 'admin' ? 'text-purple-400' : 'text-emerald-400'}`}>
+                {user.role === 'admin' ? 'Administrador' : 'Vendedor'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center md:justify-start gap-2 px-4 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors text-sm"
+          >
+            <LogoutIcon />
+            <span className="hidden md:inline">Sair</span>
+          </button>
+
+          <div className="mt-3 text-xs text-slate-500 text-center md:text-left">
+            <span className="hidden md:inline font-bold text-emerald-400">Versão 2.2</span>
           </div>
         </div>
       </aside>
@@ -68,7 +125,7 @@ export default function App() {
           {view === 'inventory' && <InventoryPage />}
           {view === 'sales' && <SalesPage />}
           {view === 'reports' && <ReportsPage />}
-          {view === 'admin' && <AdminPage />}
+          {view === 'admin' && hasAdminAccess && <AdminPage />}
         </div>
       </main>
     </div>
