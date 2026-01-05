@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getProducts, addProduct, updateProduct, deleteProduct, subscribeToProducts } from '../services/dataService';
 import { Product } from '../types';
 import { PlusIcon, BoxIcon } from '../components/Icons';
 import jsPDF from 'jspdf';
 
-// Download Icon for PDF export
+// Icons
 const DownloadIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
   </svg>
 );
 
-// Icons for actions
 const EditIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -30,16 +29,31 @@ const CloseIcon = () => (
   </svg>
 );
 
+const SearchIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
+
+type SortField = 'name' | 'stock' | 'costPrice' | 'value';
+type StockFilter = 'all' | 'low' | 'ok';
+
 export const InventoryPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Search and Filter State
+  const [search, setSearch] = useState('');
+  const [stockFilter, setStockFilter] = useState<StockFilter>('all');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortAsc, setSortAsc] = useState(true);
 
   // Form State
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [costPrice, setCostPrice] = useState('');
+  const [margin, setMargin] = useState('50');
   const [stock, setStock] = useState('');
-  const [category, setCategory] = useState('Geral');
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -47,135 +61,26 @@ export const InventoryPage: React.FC = () => {
   const [editCode, setEditCode] = useState('');
   const [editName, setEditName] = useState('');
   const [editCostPrice, setEditCostPrice] = useState('');
+  const [editMargin, setEditMargin] = useState('');
   const [editStock, setEditStock] = useState('');
   const [exporting, setExporting] = useState(false);
 
-  // PDF Export Function
-  const exportStockPDF = () => {
-    setExporting(true);
+  // Calculated suggested price
+  const suggestedPrice = useMemo(() => {
+    const cost = parseFloat(costPrice) || 0;
+    const m = parseFloat(margin) || 0;
+    return cost * (1 + m / 100);
+  }, [costPrice, margin]);
 
-    try {
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-
-      // Header
-      doc.setFillColor(15, 23, 42); // slate-900
-      doc.rect(0, 0, pageWidth, 40, 'F');
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(22);
-      doc.setFont('helvetica', 'bold');
-      doc.text('StyleStock', 20, 22);
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Relat\u00f3rio de Estoque Atual', 20, 32);
-
-      doc.setFontSize(9);
-      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, pageWidth - 20, 32, { align: 'right' });
-
-      // Summary Cards
-      let yPos = 55;
-
-      const totalItems = products.reduce((acc, p) => acc + p.stock, 0);
-      const totalValue = products.reduce((acc, p) => acc + (p.costPrice * p.stock), 0);
-
-      doc.setTextColor(100, 116, 139); // slate-500
-      doc.setFontSize(9);
-      doc.text('RESUMO DO ESTOQUE', 20, yPos);
-
-      yPos += 10;
-      doc.setFillColor(248, 250, 252); // slate-50
-      doc.roundedRect(20, yPos, pageWidth - 40, 25, 3, 3, 'F');
-
-      doc.setTextColor(30, 41, 59); // slate-800
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${products.length} Produtos`, 30, yPos + 10);
-      doc.text(`${totalItems} Itens em Estoque`, 80, yPos + 10);
-      doc.text(`R$ ${totalValue.toFixed(2)} Valor Total`, 150, yPos + 10);
-
-      // Table Header
-      yPos += 40;
-      doc.setFillColor(241, 245, 249); // slate-100
-      doc.rect(20, yPos, pageWidth - 40, 10, 'F');
-
-      doc.setTextColor(71, 85, 105); // slate-600
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.text('C\u00d3DIGO', 25, yPos + 7);
-      doc.text('PRODUTO', 55, yPos + 7);
-      doc.text('CUSTO UNIT.', 115, yPos + 7);
-      doc.text('ESTOQUE', 145, yPos + 7);
-      doc.text('VALOR TOTAL', 170, yPos + 7);
-
-      // Table Body
-      yPos += 10;
-      doc.setFont('helvetica', 'normal');
-
-      products.forEach((product, index) => {
-        if (yPos > 270) {
-          doc.addPage();
-          yPos = 20;
-        }
-
-        // Alternate row background
-        if (index % 2 === 0) {
-          doc.setFillColor(248, 250, 252);
-          doc.rect(20, yPos, pageWidth - 40, 10, 'F');
-        }
-
-        doc.setTextColor(37, 99, 235); // blue-600
-        doc.setFontSize(8);
-        doc.text(product.code, 25, yPos + 7);
-
-        doc.setTextColor(30, 41, 59); // slate-800
-        doc.text(product.name.substring(0, 25), 55, yPos + 7);
-
-        doc.setTextColor(100, 116, 139); // slate-500
-        doc.text(`R$ ${product.costPrice.toFixed(2)}`, 115, yPos + 7);
-
-        // Stock with color indicator
-        if (product.stock <= 5) {
-          doc.setTextColor(220, 38, 38); // red-600
-        } else {
-          doc.setTextColor(22, 163, 74); // green-600
-        }
-        doc.text(`${product.stock} un`, 145, yPos + 7);
-
-        doc.setTextColor(30, 41, 59);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`R$ ${(product.costPrice * product.stock).toFixed(2)}`, 170, yPos + 7);
-        doc.setFont('helvetica', 'normal');
-
-        yPos += 10;
-      });
-
-      // Footer
-      yPos += 15;
-      doc.setDrawColor(226, 232, 240); // slate-200
-      doc.line(20, yPos, pageWidth - 20, yPos);
-
-      yPos += 10;
-      doc.setTextColor(148, 163, 184); // slate-400
-      doc.setFontSize(8);
-      doc.text('Relat\u00f3rio gerado automaticamente pelo StyleStock', pageWidth / 2, yPos, { align: 'center' });
-
-      // Save
-      doc.save(`Estoque_StyleStock_${new Date().toISOString().split('T')[0]}.pdf`);
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert('Erro ao exportar PDF');
-    }
-
-    setExporting(false);
-  };
+  const editSuggestedPrice = useMemo(() => {
+    const cost = parseFloat(editCostPrice) || 0;
+    const m = parseFloat(editMargin) || 0;
+    return cost * (1 + m / 100);
+  }, [editCostPrice, editMargin]);
 
   useEffect(() => {
     loadProducts();
-    const unsubscribe = subscribeToProducts(() => {
-      loadProducts();
-    });
+    const unsubscribe = subscribeToProducts(() => loadProducts());
     return () => unsubscribe();
   }, []);
 
@@ -184,6 +89,40 @@ export const InventoryPage: React.FC = () => {
     const data = await getProducts();
     setProducts(data);
     setLoading(false);
+  };
+
+  // Filtered and sorted products
+  const filteredProducts = useMemo(() => {
+    let result = [...products];
+
+    // Search filter
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter(p => p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s));
+    }
+
+    // Stock filter
+    if (stockFilter === 'low') result = result.filter(p => p.stock <= 5);
+    if (stockFilter === 'ok') result = result.filter(p => p.stock > 5);
+
+    // Sort
+    result.sort((a, b) => {
+      let valueA: any, valueB: any;
+      if (sortField === 'name') { valueA = a.name; valueB = b.name; }
+      else if (sortField === 'stock') { valueA = a.stock; valueB = b.stock; }
+      else if (sortField === 'costPrice') { valueA = a.costPrice; valueB = b.costPrice; }
+      else if (sortField === 'value') { valueA = a.costPrice * a.stock; valueB = b.costPrice * b.stock; }
+
+      if (typeof valueA === 'string') return sortAsc ? valueA.localeCompare(valueB) : valueB.localeCompare(valueA);
+      return sortAsc ? valueA - valueB : valueB - valueA;
+    });
+
+    return result;
+  }, [products, search, stockFilter, sortField, sortAsc]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) setSortAsc(!sortAsc);
+    else { setSortField(field); setSortAsc(true); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -195,47 +134,40 @@ export const InventoryPage: React.FC = () => {
         code,
         name,
         costPrice: Number(costPrice),
+        margin: Number(margin),
+        suggestedPrice: suggestedPrice,
         stock: Number(stock),
-        category
+        category: 'Geral'
       });
-
-      // Reset Form
-      setCode('');
-      setName('');
-      setCostPrice('');
-      setStock('');
-
-      // Refresh list
+      setCode(''); setName(''); setCostPrice(''); setMargin('50'); setStock('');
       loadProducts();
     } catch (error) {
       alert("Erro ao salvar produto");
     }
   };
 
-  // Edit handlers
   const openEditModal = (product: Product) => {
     setEditingProduct(product);
     setEditCode(product.code);
     setEditName(product.name);
     setEditCostPrice(product.costPrice.toString());
+    setEditMargin((product.margin || 50).toString());
     setEditStock(product.stock.toString());
     setIsEditModalOpen(true);
   };
 
-  const closeEditModal = () => {
-    setIsEditModalOpen(false);
-    setEditingProduct(null);
-  };
+  const closeEditModal = () => { setIsEditModalOpen(false); setEditingProduct(null); };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
-
     try {
       await updateProduct(editingProduct.id, {
         code: editCode,
         name: editName,
         costPrice: Number(editCostPrice),
+        margin: Number(editMargin),
+        suggestedPrice: editSuggestedPrice,
         stock: Number(editStock),
       });
       closeEditModal();
@@ -245,17 +177,86 @@ export const InventoryPage: React.FC = () => {
     }
   };
 
-  // Delete handler
   const handleDelete = async (product: Product) => {
-    const confirmed = window.confirm(`Tem certeza que deseja excluir "${product.name}"?`);
-    if (!confirmed) return;
+    if (!window.confirm(`Excluir "${product.name}"?`)) return;
+    try { await deleteProduct(product.id); loadProducts(); } catch { alert("Erro ao excluir"); }
+  };
 
+  const exportStockPDF = () => {
+    setExporting(true);
     try {
-      await deleteProduct(product.id);
-      loadProducts();
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('StyleStock', 20, 22);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Relatório de Estoque Atual', 20, 32);
+      doc.setFontSize(9);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, pageWidth - 20, 32, { align: 'right' });
+
+      let yPos = 55;
+      const totalItems = products.reduce((acc, p) => acc + p.stock, 0);
+      const totalValue = products.reduce((acc, p) => acc + (p.costPrice * p.stock), 0);
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFontSize(9);
+      doc.text('RESUMO DO ESTOQUE', 20, yPos);
+      yPos += 10;
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(20, yPos, pageWidth - 40, 25, 3, 3, 'F');
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${products.length} Produtos`, 30, yPos + 10);
+      doc.text(`${totalItems} Itens`, 80, yPos + 10);
+      doc.text(`R$ ${totalValue.toFixed(2)} Valor Total`, 130, yPos + 10);
+
+      yPos += 40;
+      doc.setFillColor(241, 245, 249);
+      doc.rect(20, yPos, pageWidth - 40, 10, 'F');
+      doc.setTextColor(71, 85, 105);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CÓDIGO', 25, yPos + 7);
+      doc.text('PRODUTO', 50, yPos + 7);
+      doc.text('CUSTO', 105, yPos + 7);
+      doc.text('MARGEM', 125, yPos + 7);
+      doc.text('PREÇO VENDA', 150, yPos + 7);
+      doc.text('ESTOQUE', 185, yPos + 7);
+
+      yPos += 10;
+      doc.setFont('helvetica', 'normal');
+
+      products.forEach((product, index) => {
+        if (yPos > 270) { doc.addPage(); yPos = 20; }
+        if (index % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(20, yPos, pageWidth - 40, 10, 'F'); }
+
+        doc.setTextColor(37, 99, 235);
+        doc.setFontSize(8);
+        doc.text(product.code.substring(0, 10), 25, yPos + 7);
+        doc.setTextColor(30, 41, 59);
+        doc.text(product.name.substring(0, 20), 50, yPos + 7);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`R$ ${product.costPrice.toFixed(2)}`, 105, yPos + 7);
+        doc.text(`${product.margin || 50}%`, 125, yPos + 7);
+        doc.setTextColor(16, 185, 129);
+        doc.text(`R$ ${product.suggestedPrice?.toFixed(2) || '-'}`, 150, yPos + 7);
+        doc.setTextColor(product.stock <= 5 ? 220 : 22, product.stock <= 5 ? 38 : 163, product.stock <= 5 ? 38 : 74);
+        doc.text(`${product.stock} un`, 185, yPos + 7);
+        yPos += 10;
+      });
+
+      doc.save(`Estoque_StyleStock_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
-      alert("Erro ao excluir produto");
+      alert('Erro ao exportar PDF');
     }
+    setExporting(false);
   };
 
   return (
@@ -269,148 +270,132 @@ export const InventoryPage: React.FC = () => {
             </h2>
             <p className="text-slate-500">Cadastre novas roupas e controle a entrada de mercadorias.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={exportStockPDF}
-              disabled={exporting || products.length === 0}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-lg shadow-purple-500/25 transition-all disabled:opacity-50 text-sm"
-            >
-              <DownloadIcon />
-              {exporting ? 'Exportando...' : 'Exportar PDF'}
-            </button>
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200 animate-pulse">
-              ● v2.0 ONLINE
-            </span>
-          </div>
+          <button onClick={exportStockPDF} disabled={exporting || products.length === 0}
+            className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-lg shadow-purple-500/25 transition-all disabled:opacity-50 text-sm">
+            <DownloadIcon />
+            {exporting ? 'Exportando...' : 'Exportar PDF'}
+          </button>
         </div>
       </header>
 
-      <div className="space-y-6">
-        {/* Form Section */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="font-semibold text-lg mb-4 text-slate-700">Novo Item</h3>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Código da Roupa</label>
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Ex: LC-CAM-001"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Nome / Descrição</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Camiseta Lacoste Preta M"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Custo (R$)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={costPrice}
-                onChange={(e) => setCostPrice(e.target.value)}
-                placeholder="0.00"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Quantidade</label>
-              <input
-                type="number"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                placeholder="0"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors h-[42px]"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Cadastrar
-            </button>
-          </form>
-        </div>
-
-        {/* List Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-slate-100 bg-slate-50">
-            <h3 className="font-semibold text-slate-700">Estoque Atual</h3>
+      {/* Add Product Form */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-lg mb-4 text-slate-700">Novo Item</h3>
+        <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 items-end">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Código</label>
+            <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="LC-001"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
           </div>
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50 text-slate-700 uppercase font-medium text-xs">
-                <tr>
-                  <th className="px-4 py-3">Código</th>
-                  <th className="px-4 py-3">Produto</th>
-                  <th className="px-4 py-3">Custo Unit.</th>
-                  <th className="px-4 py-3 text-center">Estoque</th>
-                  <th className="px-4 py-3 text-right">Valor Total</th>
-                  <th className="px-4 py-3 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {products.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                      Nenhum item cadastrado.
+          <div className="md:col-span-2 lg:col-span-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Camiseta Lacoste"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Custo (R$)</label>
+            <input type="number" step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="0.00"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Margem (%)</label>
+            <input type="number" value={margin} onChange={(e) => setMargin(e.target.value)} placeholder="50"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Preço Sugerido</label>
+            <div className="px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 font-medium">
+              R$ {suggestedPrice.toFixed(2)}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Quantidade</label>
+            <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="0"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+          </div>
+          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors h-[42px]">
+            <PlusIcon className="w-4 h-4" /> Cadastrar
+          </button>
+        </form>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4">
+        <div className="flex-1 relative">
+          <SearchIcon />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome ou código..."
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><SearchIcon /></span>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setStockFilter('all')} className={`px-4 py-2 rounded-lg text-sm font-medium ${stockFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            Todos ({products.length})
+          </button>
+          <button onClick={() => setStockFilter('low')} className={`px-4 py-2 rounded-lg text-sm font-medium ${stockFilter === 'low' ? 'bg-red-600 text-white' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}>
+            Baixo ({products.filter(p => p.stock <= 5).length})
+          </button>
+          <button onClick={() => setStockFilter('ok')} className={`px-4 py-2 rounded-lg text-sm font-medium ${stockFilter === 'ok' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+            OK ({products.filter(p => p.stock > 5).length})
+          </button>
+        </div>
+      </div>
+
+      {/* Products Table */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-4 border-b border-slate-100 bg-slate-50">
+          <h3 className="font-semibold text-slate-700">Estoque Atual ({filteredProducts.length} itens)</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-slate-600">
+            <thead className="bg-slate-50 text-slate-700 uppercase font-medium text-xs">
+              <tr>
+                <th className="px-4 py-3">Código</th>
+                <th className="px-4 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('name')}>
+                  Produto {sortField === 'name' && (sortAsc ? '↑' : '↓')}
+                </th>
+                <th className="px-4 py-3 cursor-pointer hover:bg-slate-100" onClick={() => handleSort('costPrice')}>
+                  Custo {sortField === 'costPrice' && (sortAsc ? '↑' : '↓')}
+                </th>
+                <th className="px-4 py-3">Margem</th>
+                <th className="px-4 py-3">Preço Venda</th>
+                <th className="px-4 py-3 text-center cursor-pointer hover:bg-slate-100" onClick={() => handleSort('stock')}>
+                  Estoque {sortField === 'stock' && (sortAsc ? '↑' : '↓')}
+                </th>
+                <th className="px-4 py-3 text-right cursor-pointer hover:bg-slate-100" onClick={() => handleSort('value')}>
+                  Valor Total {sortField === 'value' && (sortAsc ? '↑' : '↓')}
+                </th>
+                <th className="px-4 py-3 text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredProducts.length === 0 ? (
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Nenhum item encontrado.</td></tr>
+              ) : (
+                filteredProducts.map(product => (
+                  <tr key={product.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-mono text-xs font-semibold text-blue-600">{product.code}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">{product.name}</td>
+                    <td className="px-4 py-3">R$ {product.costPrice.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-slate-500">{product.margin || 50}%</td>
+                    <td className="px-4 py-3 font-medium text-emerald-600">R$ {(product.suggestedPrice || product.costPrice * 1.5).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock <= 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                        {product.stock} un
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium">R$ {(product.costPrice * product.stock).toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => openEditModal(product)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><EditIcon /></button>
+                        <button onClick={() => handleDelete(product)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><TrashIcon /></button>
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  products.map(product => (
-                    <tr key={product.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs font-semibold text-blue-600">{product.code}</td>
-                      <td className="px-4 py-3 font-medium text-slate-900">{product.name}</td>
-                      <td className="px-4 py-3">R$ {product.costPrice.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stock < 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                          {product.stock} un
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium">
-                        R$ {(product.costPrice * product.stock).toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => openEditModal(product)}
-                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                            title="Editar"
-                          >
-                            <EditIcon />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(product)}
-                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                            title="Excluir"
-                          >
-                            <TrashIcon />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -420,68 +405,49 @@ export const InventoryPage: React.FC = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h3 className="font-semibold text-lg text-slate-800">Editar Produto</h3>
-              <button onClick={closeEditModal} className="p-1 hover:bg-slate-100 rounded-lg transition-colors">
-                <CloseIcon />
-              </button>
+              <button onClick={closeEditModal} className="p-1 hover:bg-slate-100 rounded-lg"><CloseIcon /></button>
             </div>
             <form onSubmit={handleEditSubmit} className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Código</label>
-                <input
-                  type="text"
-                  value={editCode}
-                  onChange={(e) => setEditCode(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nome / Descrição</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Código</label>
+                  <input type="text" value={editCode} onChange={(e) => setEditCode(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
+                  <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Custo (R$)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editCostPrice}
-                    onChange={(e) => setEditCostPrice(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    required
-                  />
+                  <input type="number" step="0.01" value={editCostPrice} onChange={(e) => setEditCostPrice(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Margem (%)</label>
+                  <input type="number" value={editMargin} onChange={(e) => setEditMargin(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Preço Sugerido</label>
+                  <div className="px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 font-medium">
+                    R$ {editSuggestedPrice.toFixed(2)}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Quantidade</label>
-                  <input
-                    type="number"
-                    value={editStock}
-                    onChange={(e) => setEditStock(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    required
-                  />
+                  <input type="number" value={editStock} onChange={(e) => setEditStock(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeEditModal}
-                  className="flex-1 py-2 px-4 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Salvar
-                </button>
+                <button type="button" onClick={closeEditModal} className="flex-1 py-2 px-4 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50">Cancelar</button>
+                <button type="submit" className="flex-1 py-2 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700">Salvar</button>
               </div>
             </form>
           </div>
