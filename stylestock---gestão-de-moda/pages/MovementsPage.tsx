@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { getStockMovements } from '../services/dataService';
+import { getStockMovements, deleteMovement } from '../services/dataService';
 import { StockMovement } from '../types';
 
 const HistoryIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+
+const TrashIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     </svg>
 );
 
@@ -30,6 +36,16 @@ export const MovementsPage: React.FC = () => {
         const data = await getStockMovements();
         setMovements(data);
         setLoading(false);
+    };
+
+    const handleDelete = async (movement: StockMovement) => {
+        if (!window.confirm(`Excluir movimentação de "${movement.productName}"?`)) return;
+        try {
+            await deleteMovement(movement.id);
+            loadData();
+        } catch (error: any) {
+            alert(`Erro ao excluir: ${error?.message || 'Erro desconhecido'}`);
+        }
     };
 
     const filteredMovements = movements.filter(m => {
@@ -98,16 +114,17 @@ export const MovementsPage: React.FC = () => {
                             <th className="px-4 py-3 text-center">Estoque Anterior</th>
                             <th className="px-4 py-3 text-center">Novo Estoque</th>
                             <th className="px-4 py-3 text-left">Motivo</th>
+                            <th className="px-4 py-3 text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {loading ? (
                             <tr>
-                                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">Carregando...</td>
+                                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">Carregando...</td>
                             </tr>
                         ) : filteredMovements.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">Nenhuma movimentação encontrada</td>
+                                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">Nenhuma movimentação encontrada</td>
                             </tr>
                         ) : (
                             filteredMovements.map(movement => (
@@ -130,6 +147,15 @@ export const MovementsPage: React.FC = () => {
                                     <td className="px-4 py-3 text-center text-slate-400">{movement.previousStock}</td>
                                     <td className="px-4 py-3 text-center font-medium text-slate-700">{movement.newStock}</td>
                                     <td className="px-4 py-3 text-slate-500 text-xs">{movement.reason}</td>
+                                    <td className="px-4 py-3 text-center">
+                                        <button
+                                            onClick={() => handleDelete(movement)}
+                                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                            title="Excluir movimentação"
+                                        >
+                                            <TrashIcon />
+                                        </button>
+                                    </td>
                                 </tr>
                             ))
                         )}

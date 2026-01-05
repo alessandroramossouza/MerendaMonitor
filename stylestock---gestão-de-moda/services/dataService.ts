@@ -311,6 +311,18 @@ export const getStockMovements = async (): Promise<StockMovement[]> => {
   return (data || []).map(mapMovementFromDB);
 };
 
+export const deleteMovement = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from(MOVEMENTS_TABLE)
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting movement:', error);
+    throw error;
+  }
+};
+
 const logStockMovement = async (
   productId: string,
   productName: string,
