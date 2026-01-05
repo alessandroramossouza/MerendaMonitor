@@ -222,6 +222,18 @@ export const processSale = async (
   return mapSaleFromDB(saleData);
 };
 
+export const deleteSale = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from(SALES_TABLE)
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting sale:', error);
+    throw error;
+  }
+};
+
 // --- CUSTOMERS ---
 
 export const getCustomers = async (): Promise<Customer[]> => {

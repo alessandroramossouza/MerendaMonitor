@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getSales, getProducts } from '../services/dataService';
+import { getSales, getProducts, deleteSale } from '../services/dataService';
 import { Sale, Product } from '../types';
 import { ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
 import jsPDF from 'jspdf';
@@ -21,6 +21,12 @@ const DownloadIcon = () => (
 const CalendarIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+);
+
+const TrashIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     </svg>
 );
 
@@ -52,6 +58,16 @@ export const ReportsPage: React.FC = () => {
         setSales(sData);
         setProducts(pData);
         setLoading(false);
+    };
+
+    const handleDeleteSale = async (sale: Sale) => {
+        if (!window.confirm(`Excluir venda de "${sale.productName}" (R$ ${sale.total.toFixed(2)})?`)) return;
+        try {
+            await deleteSale(sale.id);
+            loadData();
+        } catch (error: any) {
+            alert(`Erro ao excluir: ${error?.message || 'Erro desconhecido'}`);
+        }
     };
 
     // Filter sales by period
@@ -396,12 +412,13 @@ export const ReportsPage: React.FC = () => {
                                     <th className="px-4 py-3 text-right">Venda</th>
                                     <th className="px-4 py-3 text-right">Total</th>
                                     <th className="px-4 py-3 text-right">Lucro</th>
+                                    <th className="px-4 py-3 text-center">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {filteredSales.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                                        <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                                             Nenhuma venda encontrada no período selecionado.
                                         </td>
                                     </tr>
@@ -419,6 +436,15 @@ export const ReportsPage: React.FC = () => {
                                                 <td className="px-4 py-3 text-right text-slate-700">R$ {sale.salePrice.toFixed(2)}</td>
                                                 <td className="px-4 py-3 text-right font-medium">R$ {sale.total.toFixed(2)}</td>
                                                 <td className="px-4 py-3 text-right font-bold text-emerald-600">+ R$ {profit.toFixed(2)}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <button
+                                                        onClick={() => handleDeleteSale(sale)}
+                                                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                                        title="Excluir venda"
+                                                    >
+                                                        <TrashIcon />
+                                                    </button>
+                                                </td>
                                             </tr>
                                         );
                                     })
