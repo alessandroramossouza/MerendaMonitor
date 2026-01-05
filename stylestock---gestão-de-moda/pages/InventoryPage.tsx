@@ -179,7 +179,13 @@ export const InventoryPage: React.FC = () => {
 
   const handleDelete = async (product: Product) => {
     if (!window.confirm(`Excluir "${product.name}"?`)) return;
-    try { await deleteProduct(product.id); loadProducts(); } catch { alert("Erro ao excluir"); }
+    try {
+      await deleteProduct(product.id);
+      loadProducts();
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      alert(`Erro ao excluir: ${error?.message || error?.details || JSON.stringify(error)}`);
+    }
   };
 
   const exportStockPDF = () => {
