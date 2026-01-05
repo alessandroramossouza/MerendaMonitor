@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { getProducts, addProduct, updateProduct, deleteProduct, subscribeToProducts } from '../services/dataService';
 import { Product } from '../types';
 import { PlusIcon, BoxIcon } from '../components/Icons';
+import jsPDF from 'jspdf';
+
+// Download Icon for PDF export
+const DownloadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+  </svg>
+);
 
 // Icons for actions
 const EditIcon = () => (
@@ -40,6 +48,128 @@ export const InventoryPage: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [editCostPrice, setEditCostPrice] = useState('');
   const [editStock, setEditStock] = useState('');
+  const [exporting, setExporting] = useState(false);
+
+  // PDF Export Function
+  const exportStockPDF = () => {
+    setExporting(true);
+
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Header
+      doc.setFillColor(15, 23, 42); // slate-900
+      doc.rect(0, 0, pageWidth, 40, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('StyleStock', 20, 22);
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Relat\u00f3rio de Estoque Atual', 20, 32);
+
+      doc.setFontSize(9);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, pageWidth - 20, 32, { align: 'right' });
+
+      // Summary Cards
+      let yPos = 55;
+
+      const totalItems = products.reduce((acc, p) => acc + p.stock, 0);
+      const totalValue = products.reduce((acc, p) => acc + (p.costPrice * p.stock), 0);
+
+      doc.setTextColor(100, 116, 139); // slate-500
+      doc.setFontSize(9);
+      doc.text('RESUMO DO ESTOQUE', 20, yPos);
+
+      yPos += 10;
+      doc.setFillColor(248, 250, 252); // slate-50
+      doc.roundedRect(20, yPos, pageWidth - 40, 25, 3, 3, 'F');
+
+      doc.setTextColor(30, 41, 59); // slate-800
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${products.length} Produtos`, 30, yPos + 10);
+      doc.text(`${totalItems} Itens em Estoque`, 80, yPos + 10);
+      doc.text(`R$ ${totalValue.toFixed(2)} Valor Total`, 150, yPos + 10);
+
+      // Table Header
+      yPos += 40;
+      doc.setFillColor(241, 245, 249); // slate-100
+      doc.rect(20, yPos, pageWidth - 40, 10, 'F');
+
+      doc.setTextColor(71, 85, 105); // slate-600
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('C\u00d3DIGO', 25, yPos + 7);
+      doc.text('PRODUTO', 55, yPos + 7);
+      doc.text('CUSTO UNIT.', 115, yPos + 7);
+      doc.text('ESTOQUE', 145, yPos + 7);
+      doc.text('VALOR TOTAL', 170, yPos + 7);
+
+      // Table Body
+      yPos += 10;
+      doc.setFont('helvetica', 'normal');
+
+      products.forEach((product, index) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        // Alternate row background
+        if (index % 2 === 0) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(20, yPos, pageWidth - 40, 10, 'F');
+        }
+
+        doc.setTextColor(37, 99, 235); // blue-600
+        doc.setFontSize(8);
+        doc.text(product.code, 25, yPos + 7);
+
+        doc.setTextColor(30, 41, 59); // slate-800
+        doc.text(product.name.substring(0, 25), 55, yPos + 7);
+
+        doc.setTextColor(100, 116, 139); // slate-500
+        doc.text(`R$ ${product.costPrice.toFixed(2)}`, 115, yPos + 7);
+
+        // Stock with color indicator
+        if (product.stock <= 5) {
+          doc.setTextColor(220, 38, 38); // red-600
+        } else {
+          doc.setTextColor(22, 163, 74); // green-600
+        }
+        doc.text(`${product.stock} un`, 145, yPos + 7);
+
+        doc.setTextColor(30, 41, 59);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`R$ ${(product.costPrice * product.stock).toFixed(2)}`, 170, yPos + 7);
+        doc.setFont('helvetica', 'normal');
+
+        yPos += 10;
+      });
+
+      // Footer
+      yPos += 15;
+      doc.setDrawColor(226, 232, 240); // slate-200
+      doc.line(20, yPos, pageWidth - 20, yPos);
+
+      yPos += 10;
+      doc.setTextColor(148, 163, 184); // slate-400
+      doc.setFontSize(8);
+      doc.text('Relat\u00f3rio gerado automaticamente pelo StyleStock', pageWidth / 2, yPos, { align: 'center' });
+
+      // Save
+      doc.save(`Estoque_StyleStock_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Erro ao exportar PDF');
+    }
+
+    setExporting(false);
+  };
 
   useEffect(() => {
     loadProducts();
@@ -139,9 +269,19 @@ export const InventoryPage: React.FC = () => {
             </h2>
             <p className="text-slate-500">Cadastre novas roupas e controle a entrada de mercadorias.</p>
           </div>
-          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200 animate-pulse">
-            ● v2.0 ONLINE
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={exportStockPDF}
+              disabled={exporting || products.length === 0}
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-lg shadow-purple-500/25 transition-all disabled:opacity-50 text-sm"
+            >
+              <DownloadIcon />
+              {exporting ? 'Exportando...' : 'Exportar PDF'}
+            </button>
+            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200 animate-pulse">
+              ● v2.0 ONLINE
+            </span>
+          </div>
         </div>
       </header>
 
