@@ -19,7 +19,7 @@ export interface Sale {
   timestamp: string;
 }
 
-export type ViewState = 'inventory' | 'sales' | 'admin';
+export type ViewState = 'inventory' | 'sales' | 'admin' | 'reports';
 
 export interface DashboardMetrics {
   totalRevenue: number;
