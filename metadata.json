@@ -1,0 +1,5 @@
+{
+  "name": "MerendaMonitor",
+  "description": "Plataforma de gestão de merenda escolar com controle de estoque, cálculo de consumo por aluno e insights com IA.",
+  "requestFramePermissions": []
+}
