@@ -1,138 +1,177 @@
-import React from 'react';
-import { Ingredient, ConsumptionLog } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
-import { AlertTriangle, TrendingDown, Users, Package } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AlertTriangle, TrendingDown, Package, Clock } from 'lucide-react';
 
 interface DashboardProps {
   inventory: Ingredient[];
   logs: ConsumptionLog[];
+  supplyLogs?: SupplyLog[];
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ inventory, logs }) => {
-  const lowStockItems = inventory.filter(i => i.currentStock <= i.minThreshold);
-  
-  // Aggregate data for charts
-  const consumptionData = logs.slice(-7).map(log => ({
-    name: log.date.split('-').slice(1).join('/'), // Format MM/DD
-    grams: log.gramsPerStudent,
-    amount: log.amountUsed,
-    item: log.ingredientName
-  }));
+export const Dashboard: React.FC<DashboardProps> = ({ inventory, logs, supplyLogs = [] }) => {
+  // Low Stock Items
+  const lowStockItems = inventory.filter(item => item.currentStock <= item.minThreshold);
 
-  // Group by item for stock chart
-  const stockData = inventory.map(item => ({
-    name: item.name,
-    stock: item.currentStock,
-    min: item.minThreshold
-  })).sort((a, b) => a.stock - b.stock).slice(0, 10); // Show top 10 lowest
+  // Calculate Expiration Alerts (Items expiring in next 30 days)
+  const expiringItems = useMemo(() => {
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+    return supplyLogs
+      .filter(log => log.expirationDate)
+      .map(log => ({
+        ...log,
+        daysToZap: Math.ceil((new Date(log.expirationDate!).getTime() - today.getTime()) / (1000 * 3600 * 24))
+      }))
+      .filter(item => item.daysToZap <= 30 && item.daysToZap >= -5) // Show expired nearby too
+      .sort((a, b) => a.daysToZap - b.daysToZap);
+  }, [supplyLogs]);
+
+  // Aggregate Consumption for Chart
+  const chartData = useMemo(() => {
+    const data: Record<string, number> = {};
+    logs.slice(0, 50).forEach(log => {
+      data[log.ingredientName] = (data[log.ingredientName] || 0) + log.amountUsed;
+    });
+    return Object.entries(data)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5); // Top 5
+  }, [logs]);
 
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">Visão Geral</h2>
+    <div className="p-6 space-y-8">
+      <header>
+        <h2 className="text-3xl font-bold text-gray-800">Painel de Controle</h2>
+        <p className="text-gray-500">Visão geral da merenda escolar</p>
+      </header>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Itens em Alerta</p>
-            <h3 className="text-2xl font-bold text-red-600">{lowStockItems.length}</h3>
-          </div>
-          <div className="p-3 bg-red-100 rounded-full text-red-600">
-            <AlertTriangle className="w-6 h-6" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Itens no Estoque</p>
+              <h3 className="text-3xl font-bold text-gray-800 mt-2">{inventory.length}</h3>
+            </div>
+            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl">
+              <Package className="w-6 h-6" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Itens Totais</p>
-            <h3 className="text-2xl font-bold text-gray-800">{inventory.length}</h3>
-          </div>
-          <div className="p-3 bg-blue-100 rounded-full text-blue-600">
-            <Package className="w-6 h-6" />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Registros Hoje</p>
-            <h3 className="text-2xl font-bold text-gray-800">
-              {logs.filter(l => l.date === new Date().toISOString().split('T')[0]).length}
-            </h3>
-          </div>
-          <div className="p-3 bg-green-100 rounded-full text-green-600">
-            <TrendingDown className="w-6 h-6" />
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Estoque Crítico</p>
+              <h3 className="text-3xl font-bold text-red-600 mt-2">{lowStockItems.length}</h3>
+            </div>
+            <div className="p-3 bg-red-100 text-red-600 rounded-xl">
+              <TrendingDown className="w-6 h-6" />
+            </div>
           </div>
         </div>
 
-         <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500 font-medium">Média Alunos (7d)</p>
-            <h3 className="text-2xl font-bold text-gray-800">
-              {Math.round(logs.slice(-7).reduce((acc, curr) => acc + curr.studentCount, 0) / (logs.slice(-7).length || 1))}
-            </h3>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Refeições Servidas</p>
+              <h3 className="text-3xl font-bold text-blue-600 mt-2">
+                {logs.reduce((acc, curr) => acc + curr.studentCount, 0)}
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">Total acumulado</p>
+            </div>
+            <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+              <TrendingDown className="w-6 h-6 rotate-180" />
+            </div>
           </div>
-          <div className="p-3 bg-purple-100 rounded-full text-purple-600">
-            <Users className="w-6 h-6" />
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-amber-100">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Vencendo em Breve</p>
+              <h3 className="text-3xl font-bold text-amber-600 mt-2">{expiringItems.length}</h3>
+              <p className="text-xs text-gray-400 mt-1">Próximos 30 dias</p>
+            </div>
+            <div className="p-3 bg-amber-100 text-amber-600 rounded-xl">
+              <Clock className="w-6 h-6" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Alerts Section */}
-      {lowStockItems.length > 0 && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-          <h3 className="font-bold text-red-800 mb-2 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" /> Reposição Necessária
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Low Stock Alerts */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <AlertTriangle className="text-red-500" />
+            Alertas de Reposição
           </h3>
-          <div className="flex flex-wrap gap-2">
-            {lowStockItems.map(item => (
-              <span key={item.id} className="bg-white text-red-700 px-3 py-1 rounded-full text-sm border border-red-200 shadow-sm">
-                {item.name}: <b>{item.currentStock}kg</b> (Mín: {item.minThreshold}kg)
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="font-semibold text-gray-700 mb-6">Consumo por Aluno (Gramas) - Últimos Registros</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={consumptionData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  formatter={(value: number) => [`${value.toFixed(1)}g`, 'Por Aluno']}
-                  labelFormatter={(label) => `Data: ${label}`}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="grams" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} name="Gramas/Aluno" />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="space-y-4">
+            {lowStockItems.length === 0 ? (
+              <p className="text-center text-gray-400 py-8">Estoque saudável! ✅</p>
+            ) : (
+              lowStockItems.map(item => (
+                <div key={item.id} className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
+                  <div>
+                    <h4 className="font-semibold text-gray-800">{item.name}</h4>
+                    <p className="text-sm text-red-600">Restam apenas {item.currentStock} {item.unit}</p>
+                  </div>
+                  <span className="text-xs font-bold text-red-700 bg-red-200 px-3 py-1 rounded-full">
+                    Mín: {item.minThreshold}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <h3 className="font-semibold text-gray-700 mb-6">Níveis de Estoque (Itens Críticos)</h3>
-          <div className="h-64">
-             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stockData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '8px' }}
-                  formatter={(value: number) => [`${value}kg`, 'Quantidade']}
-                />
-                <Legend />
-                <Bar dataKey="stock" fill="#3b82f6" radius={[0, 4, 4, 0]} name="Estoque Atual" />
-                <Bar dataKey="min" fill="#ef4444" radius={[0, 4, 4, 0]} name="Mínimo" />
-              </BarChart>
-            </ResponsiveContainer>
+        {/* Expiration Alerts (NEW) */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <Clock className="text-amber-500" />
+            Atenção: Validade
+          </h3>
+          <div className="space-y-4 max-h-[300px] overflow-y-auto">
+            {expiringItems.length === 0 ? (
+              <p className="text-center text-gray-400 py-8">Nenhum item vencendo em breve. ✅</p>
+            ) : (
+              expiringItems.map(log => (
+                <div key={log.id} className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-100">
+                  <div>
+                    <h4 className="font-semibold text-gray-800">{log.ingredientName}</h4>
+                    <p className="text-sm text-amber-800">
+                      Vence dia {new Date(log.expirationDate!).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${log.daysToZap < 0 ? 'bg-red-200 text-red-800' : 'bg-amber-200 text-amber-800'}`}>
+                      {log.daysToZap < 0 ? 'VENCEU' : `${log.daysToZap} dias`}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
+        </div>
+      </div>
+
+      {/* Consumption Chart */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h3 className="text-xl font-bold text-gray-800 mb-6">Top 5 Mais Consumidos (Total)</h3>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip cursor={{ fill: 'transparent' }} />
+              <Bar dataKey="amount" fill="#10b981" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>

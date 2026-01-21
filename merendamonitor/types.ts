@@ -25,3 +25,14 @@ export interface Alert {
   message: string;
   severity: 'low' | 'critical';
 }
+
+export interface SupplyLog {
+  id: string;
+  date: string;
+  ingredientId: string;
+  ingredientName: string;
+  amountAdded: number; // in Kg
+  source: string;
+  notes?: string;
+  expirationDate?: string;
+}
