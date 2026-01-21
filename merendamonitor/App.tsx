@@ -97,13 +97,10 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Upload Effect
-  useEffect(() => {
-    fetchData();
-  }, []);
+    if (session) {
+      fetchData();
+    }
+  }, [session]);
 
   const handleUpdateInventory = async (updatedItem: Ingredient) => {
     // Optimistic Update
