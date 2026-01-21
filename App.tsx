@@ -89,14 +89,16 @@ const App: React.FC = () => {
       setInventory(formattedIngredients);
       setLogs(formattedLogs);
       setSupplyLogs(formattedSupplyLogs);
-
     } catch (error) {
       console.error('Error fetching data:', error);
-      // Optional: Handle error UI here
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // Upload Effect
   useEffect(() => {
