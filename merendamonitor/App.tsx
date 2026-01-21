@@ -276,7 +276,7 @@ const App: React.FC = () => {
         {activeTab === 'daily-log' && (
           <DailyRegister
             inventory={inventory}
-            onConsumption={handleConsumption}
+            onConsumption={handleLogConsumption}
           />
         )}
 
