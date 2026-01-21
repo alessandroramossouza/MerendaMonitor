@@ -205,6 +205,63 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
+            {inventory.map((item) => (
+              <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                <td className="p-4 font-medium text-gray-800">{item.name}</td>
+                <td className="p-4 text-gray-600">
+                  <span className="bg-gray-100 px-2 py-1 rounded-full text-xs font-medium">{item.category}</span>
+                </td>
+                <td className="p-4 text-right">
+                  <span className={`font-mono font-bold text-lg ${item.currentStock <= 0 ? 'text-gray-400' : ''}`}>
+                    {item.currentStock.toFixed(1)} {item.unit}
+                  </span>
+                </td>
+                <td className="p-4 text-center">
+                  {getExpirationBadge(item.id) || (
+                    <span className="text-gray-400 text-xs">Sem validade</span>
+                  )}
+                </td>
+                <td className="p-4 text-right">
+                  {item.currentStock <= 0 ? (
+                    <span className="inline-flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-xs font-bold">
+                      Sem estoque
+                    </span>
+                  ) : item.currentStock <= item.minThreshold ? (
+                    <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-full text-xs font-bold">
+                      <AlertTriangle className="w-3 h-3" /> Baixo
+                    </span>
+                  ) : (
+                    <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full text-xs font-bold">OK</span>
+                  )}
+                </td>
+                <td className="p-4 flex justify-center gap-2">
+                  <button
+                    onClick={() => setHistoryItem(item)}
+                    className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"
+                    title="Ver Histórico"
+                  >
+                    <History className="w-4 h-4" />
+                  </button>
+                  {!readOnly && (
+                    <>
+                      <button onClick={() => startEdit(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => onDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Excluir">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {inventory.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-8 text-center text-gray-400">
+                  Nenhum produto cadastrado. Clique em "Novo Produto" para começar.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
