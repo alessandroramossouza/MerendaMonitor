@@ -142,17 +142,38 @@ const App: React.FC = () => {
   };
 
   const handleDeleteInventory = async (id: string) => {
-    // Optimistic
+    // Optimistic remove from UI
     setInventory(prev => prev.filter(item => item.id !== id));
 
-    const { error } = await supabase
-      .from('ingredients')
-      .delete()
-      .eq('id', id);
+    try {
+      // 1. Delete associated Consumption Logs
+      const { error: consumptionError } = await supabase
+        .from('consumption_logs')
+        .delete()
+        .eq('ingredient_id', id);
 
-    if (error) {
+      if (consumptionError) throw consumptionError;
+
+      // 2. Delete associated Supply Logs
+      const { error: supplyError } = await supabase
+        .from('supply_logs')
+        .delete()
+        .eq('ingredient_id', id);
+
+      if (supplyError) throw supplyError;
+
+      // 3. Finally delete the Ingredient
+      const { error: deleteError } = await supabase
+        .from('ingredients')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+    } catch (error) {
       console.error('Error deleting ingredient:', error);
-      fetchData();
+      alert('Erro ao excluir. O item pode ter registros históricos que impedem a exclusão.');
+      fetchData(); // Rollback UI if failed
     }
   };
 
