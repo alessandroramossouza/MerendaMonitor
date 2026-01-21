@@ -257,6 +257,7 @@ const App: React.FC = () => {
         {activeTab === 'supply' && role === 'admin' && (
           <SupplyManager
             inventory={inventory}
+            supplyLogs={supplyLogs}
             onSupplyEntry={handleSupplyEntry}
           />
         )}
