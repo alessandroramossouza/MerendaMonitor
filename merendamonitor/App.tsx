@@ -248,6 +248,8 @@ const App: React.FC = () => {
             onUpdateInventory={handleUpdateInventory}
             onDelete={handleDeleteInventory}
             onAdd={handleAddInventory}
+            consumptionLogs={logs}
+            supplyLogs={supplyLogs}
           />
         )}
 

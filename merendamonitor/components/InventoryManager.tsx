@@ -1,18 +1,29 @@
 import React, { useState } from 'react';
-import { Ingredient } from '../types';
-import { Plus, Edit2, AlertTriangle, Trash2 } from 'lucide-react';
+import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
+import { Plus, Edit2, AlertTriangle, Trash2, History } from 'lucide-react';
+import { MovementHistory } from './MovementHistory';
 
 interface InventoryManagerProps {
   inventory: Ingredient[];
   onUpdateInventory: (item: Ingredient) => void;
   onDelete: (id: string) => void;
   onAdd: (item: Ingredient) => void;
+  consumptionLogs?: ConsumptionLog[];
+  supplyLogs?: SupplyLog[];
 }
 
-export const InventoryManager: React.FC<InventoryManagerProps> = ({ inventory, onUpdateInventory, onDelete, onAdd }) => {
+export const InventoryManager: React.FC<InventoryManagerProps> = ({
+  inventory,
+  onUpdateInventory,
+  onDelete,
+  onAdd,
+  consumptionLogs = [],
+  supplyLogs = []
+}) => {
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  
+  const [historyItem, setHistoryItem] = useState<Ingredient | null>(null);
+
   // Form State
   const [formData, setFormData] = useState<Partial<Ingredient>>({
     name: '',
@@ -149,6 +160,13 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ inventory, o
                   )}
                 </td>
                 <td className="p-4 flex justify-center gap-2">
+                  <button
+                    onClick={() => setHistoryItem(item)}
+                    className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"
+                    title="Ver Histórico"
+                  >
+                    <History className="w-4 h-4" />
+                  </button>
                   <button onClick={() => startEdit(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -166,6 +184,17 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({ inventory, o
           </tbody>
         </table>
       </div>
+
+      {/* Movement History Modal */}
+      {historyItem && (
+        <MovementHistory
+          ingredientId={historyItem.id}
+          ingredientName={historyItem.name}
+          consumptionLogs={consumptionLogs}
+          supplyLogs={supplyLogs}
+          onClose={() => setHistoryItem(null)}
+        />
+      )}
     </div>
   );
 };
