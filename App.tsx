@@ -5,6 +5,7 @@ import { DailyLog } from './components/DailyLog';
 import { Dashboard } from './components/Dashboard';
 import { AiAdvisor } from './components/AiAdvisor';
 import { SupplyManager } from './components/SupplyManager';
+import { CookingCalculator } from './components/CookingCalculator';
 import { Ingredient, ConsumptionLog, UserRole, SupplyLog } from './types';
 import { supabase } from './services/supabase';
 
@@ -254,6 +255,10 @@ const App: React.FC = () => {
             inventory={inventory}
             onSupplyEntry={handleSupplyEntry}
           />
+        )}
+
+        {activeTab === 'calculator' && role === 'admin' && (
+          <CookingCalculator inventory={inventory} />
         )}
 
         {activeTab === 'insights' && role === 'admin' && (

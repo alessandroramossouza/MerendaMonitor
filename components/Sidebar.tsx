@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut, Truck } from 'lucide-react';
+import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut, Truck, Calculator } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface SidebarProps {
@@ -15,6 +15,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       { id: 'dashboard', label: 'Visão Geral', icon: LayoutDashboard },
       { id: 'inventory', label: 'Estoque', icon: ShoppingBasket },
       { id: 'supply', label: 'Entradas', icon: Truck },
+      { id: 'calculator', label: 'Calculadora', icon: Calculator },
       { id: 'insights', label: 'IA Insights', icon: BrainCircuit },
     ]
     : [
@@ -39,8 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
             key={item.id}
             onClick={() => setActiveTab(item.id)}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === item.id
-                ? 'bg-emerald-700 text-white shadow-md'
-                : 'text-emerald-100 hover:bg-emerald-800'
+              ? 'bg-emerald-700 text-white shadow-md'
+              : 'text-emerald-100 hover:bg-emerald-800'
               }`}
           >
             <item.icon className="w-5 h-5" />
