@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
-import { Plus, Edit2, AlertTriangle, Trash2, History, Clock } from 'lucide-react';
+import { Plus, Edit2, AlertTriangle, Trash2, History, Clock, Package } from 'lucide-react';
 import { MovementHistory } from './MovementHistory';
 
 interface InventoryManagerProps {
@@ -24,11 +24,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [historyItem, setHistoryItem] = useState<Ingredient | null>(null);
 
-  // Form State
+  // Form State - simplified: only product info, no stock value
   const [formData, setFormData] = useState<Partial<Ingredient>>({
     name: '',
     category: 'Grãos',
-    currentStock: 0,
     minThreshold: 10,
     unit: 'kg'
   });
@@ -54,13 +53,13 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   }, [inventory, supplyLogs]);
 
   const handleSave = () => {
-    if (!formData.name || formData.currentStock === undefined) return;
+    if (!formData.name) return;
 
     const newItem: Ingredient = {
       id: isEditing || crypto.randomUUID(),
       name: formData.name,
       category: formData.category || 'Geral',
-      currentStock: Number(formData.currentStock),
+      currentStock: isEditing ? (inventory.find(i => i.id === isEditing)?.currentStock || 0) : 0, // Keep existing or start at 0
       minThreshold: Number(formData.minThreshold || 5),
       unit: 'kg'
     };
@@ -76,11 +75,16 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const resetForm = () => {
     setIsEditing(null);
     setIsAdding(false);
-    setFormData({ name: '', category: 'Grãos', currentStock: 0, minThreshold: 10, unit: 'kg' });
+    setFormData({ name: '', category: 'Grãos', minThreshold: 10, unit: 'kg' });
   };
 
   const startEdit = (item: Ingredient) => {
-    setFormData(item);
+    setFormData({
+      name: item.name,
+      category: item.category,
+      minThreshold: item.minThreshold,
+      unit: item.unit
+    });
     setIsEditing(item.id);
     setIsAdding(true);
   };
@@ -114,19 +118,33 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Gestão de Estoque</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Cadastro de Produtos</h2>
+          <p className="text-gray-500 text-sm">Cadastre os produtos. Para adicionar estoque, use "Entradas".</p>
+        </div>
         <button
           onClick={() => setIsAdding(true)}
           className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
         >
-          <Plus className="w-5 h-5" /> Adicionar Item
+          <Plus className="w-5 h-5" /> Novo Produto
         </button>
+      </div>
+
+      {/* Info Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+        <Package className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-blue-800 font-medium">Como funciona?</p>
+          <p className="text-blue-700 text-sm">
+            1. Cadastre o produto aqui → 2. Vá em <strong>Entradas</strong> para abastecer o estoque com validade
+          </p>
+        </div>
       </div>
 
       {isAdding && (
         <div className="bg-white p-6 rounded-xl shadow-md border border-emerald-100 animate-fade-in">
-          <h3 className="text-lg font-semibold mb-4 text-emerald-800">{isEditing ? 'Editar Item' : 'Novo Item'}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <h3 className="text-lg font-semibold mb-4 text-emerald-800">{isEditing ? 'Editar Produto' : 'Novo Produto'}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Produto</label>
               <input
@@ -148,17 +166,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 <option value="Proteínas">Proteínas</option>
                 <option value="Hortifruti">Hortifruti</option>
                 <option value="Laticínios">Laticínios</option>
+                <option value="Temperos">Temperos</option>
+                <option value="Bebidas">Bebidas</option>
                 <option value="Outros">Outros</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estoque Atual (kg)</label>
-              <input
-                type="number"
-                value={formData.currentStock}
-                onChange={e => setFormData({ ...formData, currentStock: parseFloat(e.target.value) })}
-                className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-emerald-500 outline-none"
-              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Alerta Mínimo (kg)</label>
@@ -167,7 +178,9 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 value={formData.minThreshold}
                 onChange={e => setFormData({ ...formData, minThreshold: parseFloat(e.target.value) })}
                 className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+                placeholder="Ex: 10"
               />
+              <p className="text-xs text-gray-400 mt-1">Avisa quando estoque for menor que este valor</p>
             </div>
           </div>
           <div className="flex gap-2 mt-4 justify-end">
@@ -184,7 +197,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               <th className="p-4 font-semibold">Produto</th>
               <th className="p-4 font-semibold">Categoria</th>
               <th className="p-4 font-semibold text-right">Estoque Atual</th>
-              <th className="p-4 font-semibold text-center">Validade</th>
+              <th className="p-4 font-semibold text-center">Próx. Validade</th>
               <th className="p-4 font-semibold text-right">Status</th>
               <th className="p-4 font-semibold text-center">Ações</th>
             </tr>
@@ -196,14 +209,22 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 <td className="p-4 text-gray-600">
                   <span className="bg-gray-100 px-2 py-1 rounded-full text-xs font-medium">{item.category}</span>
                 </td>
-                <td className="p-4 text-right font-mono font-medium">{item.currentStock.toFixed(1)} kg</td>
+                <td className="p-4 text-right">
+                  <span className={`font-mono font-bold text-lg ${item.currentStock <= 0 ? 'text-gray-400' : ''}`}>
+                    {item.currentStock.toFixed(1)} kg
+                  </span>
+                </td>
                 <td className="p-4 text-center">
                   {getExpirationBadge(item.id) || (
-                    <span className="text-gray-400 text-xs">-</span>
+                    <span className="text-gray-400 text-xs">Sem validade</span>
                   )}
                 </td>
                 <td className="p-4 text-right">
-                  {item.currentStock <= item.minThreshold ? (
+                  {item.currentStock <= 0 ? (
+                    <span className="inline-flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-xs font-bold">
+                      Sem estoque
+                    </span>
+                  ) : item.currentStock <= item.minThreshold ? (
                     <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-full text-xs font-bold">
                       <AlertTriangle className="w-3 h-3" /> Baixo
                     </span>
@@ -219,10 +240,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                   >
                     <History className="w-4 h-4" />
                   </button>
-                  <button onClick={() => startEdit(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                  <button onClick={() => startEdit(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar">
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button onClick={() => onDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                  <button onClick={() => onDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Excluir">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
@@ -230,7 +251,9 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             ))}
             {inventory.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-gray-400">Nenhum item cadastrado no estoque.</td>
+                <td colSpan={6} className="p-8 text-center text-gray-400">
+                  Nenhum produto cadastrado. Clique em "Novo Produto" para começar.
+                </td>
               </tr>
             )}
           </tbody>
