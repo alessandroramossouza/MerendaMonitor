@@ -17,11 +17,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       { id: 'supply', label: 'Entradas', icon: Truck },
       { id: 'calculator', label: 'Calculadora', icon: Calculator },
       { id: 'weekly-menu', label: 'Cardápio', icon: CalendarDays },
+      { id: 'daily-log', label: 'Registro Diário', icon: Utensils },
       { id: 'reports', label: 'Relatórios', icon: FileText },
       { id: 'insights', label: 'IA Insights', icon: BrainCircuit },
     ]
     : [
       { id: 'daily-log', label: 'Registro Diário', icon: Utensils },
+      { id: 'inventory', label: 'Estoque (Consulta)', icon: ShoppingBasket },
+      { id: 'supply', label: 'Entradas', icon: Truck },
+      { id: 'calculator', label: 'Calculadora', icon: Calculator },
+      { id: 'weekly-menu', label: 'Cardápio', icon: CalendarDays },
     ];
 
   return (
@@ -55,10 +60,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       <div className="p-4 border-t border-emerald-800">
         <button
           onClick={switchRole}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-950 rounded-lg hover:bg-black/20 text-sm transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-900/50 hover:bg-red-800 text-red-100 rounded-lg text-sm transition-colors"
         >
           <LogOut className="w-4 h-4" />
-          Trocar Perfil (Demo)
+          <span>Sair do Sistema</span>
         </button>
       </div>
     </div>
