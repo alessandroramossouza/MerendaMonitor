@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { AlertTriangle, TrendingDown, Package, Clock } from 'lucide-react';
 
 interface DashboardProps {
@@ -169,7 +169,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ inventory, logs, supplyLog
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip cursor={{ fill: 'transparent' }} />
-              <Bar dataKey="amount" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
