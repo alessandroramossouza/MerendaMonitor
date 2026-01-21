@@ -7,14 +7,18 @@ import { AiAdvisor } from './components/AiAdvisor';
 import { SupplyManager } from './components/SupplyManager';
 import { CookingCalculator } from './components/CookingCalculator';
 import { Reports } from './components/Reports';
+import { MovementHistory } from './components/MovementHistory';
 import { WeeklyMenu } from './components/WeeklyMenu';
+import { DailyRegister } from './components/DailyRegister';
+import { Login } from './components/Login';
 import { Ingredient, ConsumptionLog, UserRole, SupplyLog } from './types';
 import { supabase } from './services/supabase';
 
 const App: React.FC = () => {
-  const [role, setRole] = useState<UserRole>('admin');
+  const [role, setRole] = useState<UserRole>('cook');
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<any>(null); // To track login
+  const [loading, setLoading] = useState(false);
 
   // App State "Database"
   const [inventory, setInventory] = useState<Ingredient[]>([]);
@@ -219,14 +223,20 @@ const App: React.FC = () => {
     fetchData();
   };
 
-  const switchRole = () => {
-    const newRole = role === 'admin' ? 'cook' : 'admin';
-    setRole(newRole);
-    setActiveTab(newRole === 'admin' ? 'dashboard' : 'daily-log');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setRole('cook'); // reset default
   };
 
-  if (loading) {
-    return <div className="h-screen w-full flex items-center justify-center text-emerald-600 font-bold text-xl">Carregando Sistema...</div>;
+  const handleLoginSuccess = (session: any, userRole: 'admin' | 'cook') => {
+    setSession(session);
+    setRole(userRole);
+    setActiveTab(userRole === 'admin' ? 'dashboard' : 'daily-log');
+  };
+
+  if (!session) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (
@@ -235,7 +245,7 @@ const App: React.FC = () => {
         currentRole={role}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        switchRole={switchRole}
+        switchRole={handleLogout}
       />
 
       <main className="flex-1 ml-64">
@@ -243,7 +253,7 @@ const App: React.FC = () => {
           <Dashboard inventory={inventory} logs={logs} supplyLogs={supplyLogs} />
         )}
 
-        {activeTab === 'inventory' && role === 'admin' && (
+        {activeTab === 'inventory' && (
           <InventoryManager
             inventory={inventory}
             onUpdateInventory={handleUpdateInventory}
@@ -251,10 +261,11 @@ const App: React.FC = () => {
             onAdd={handleAddInventory}
             consumptionLogs={logs}
             supplyLogs={supplyLogs}
+            readOnly={role === 'cook'}
           />
         )}
 
-        {activeTab === 'supply' && role === 'admin' && (
+        {activeTab === 'supply' && (
           <SupplyManager
             inventory={inventory}
             supplyLogs={supplyLogs}
@@ -262,11 +273,18 @@ const App: React.FC = () => {
           />
         )}
 
-        {activeTab === 'calculator' && role === 'admin' && (
+        {activeTab === 'daily-log' && (
+          <DailyRegister
+            inventory={inventory}
+            onConsumption={handleConsumption}
+          />
+        )}
+
+        {activeTab === 'calculator' && (
           <CookingCalculator inventory={inventory} />
         )}
 
-        {activeTab === 'weekly-menu' && role === 'admin' && (
+        {activeTab === 'weekly-menu' && (
           <WeeklyMenu inventory={inventory} />
         )}
 
@@ -276,12 +294,6 @@ const App: React.FC = () => {
 
         {activeTab === 'insights' && role === 'admin' && (
           <AiAdvisor inventory={inventory} logs={logs} />
-        )}
-
-        {activeTab === 'daily-log' && (
-          <div className="p-8 mt-10">
-            <DailyLog inventory={inventory} onLogConsumption={handleLogConsumption} />
-          </div>
         )}
       </main>
     </div>
