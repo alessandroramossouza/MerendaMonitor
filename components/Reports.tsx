@@ -153,108 +153,158 @@ export const Reports: React.FC<ReportsProps> = ({ inventory, logs, supplyLogs })
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
 
-        // Colors
-        const primaryColor: [number, number, number] = [16, 185, 129]; // Emerald
+        // Colors - Enhanced Palette
+        const primaryColor: [number, number, number] = [16, 185, 129]; // Emerald 500
+        const primaryDark: [number, number, number] = [6, 78, 59]; // Emerald 900
         const darkColor: [number, number, number] = [17, 24, 39]; // Gray 900
         const grayColor: [number, number, number] = [107, 114, 128]; // Gray 500
-        const lightGray: [number, number, number] = [249, 250, 251]; // Gray 50
+        const lightGray: [number, number, number] = [243, 244, 246]; // Gray 100
 
         // ===== HEADER SECTION =====
-        // Gradient-like header bar
+        // Modern Header with Gradient-like effect using rectangles
         doc.setFillColor(...primaryColor);
-        doc.rect(0, 0, pageWidth, 40, 'F');
+        doc.rect(0, 0, pageWidth, 45, 'F');
+
+        // Subtle pattern overlay on header
+        doc.setFillColor(255, 255, 255);
+        doc.setGState(new doc.GState({ opacity: 0.1 }));
+        doc.circle(pageWidth - 20, 0, 40, 'F');
+        doc.circle(20, 45, 30, 'F');
+        doc.setGState(new doc.GState({ opacity: 1.0 }));
 
         // Logo/Title
-        doc.setFontSize(24);
+        doc.setFontSize(26);
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.text('MerendaMonitor', 20, 22);
+        doc.text('MerendaMonitor', 20, 24);
 
         // Subtitle
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text('Sistema de Gestão de Merenda Escolar', 20, 32);
+        doc.text('RELATÓRIO DE GESTÃO E PRESTAÇÃO DE CONTAS', 20, 34);
 
-        // Period badge on header
+        // Period badge
         doc.setFillColor(255, 255, 255);
-        doc.roundedRect(pageWidth - 80, 12, 65, 20, 3, 3, 'F');
-        doc.setTextColor(...primaryColor);
+        doc.roundedRect(pageWidth - 90, 12, 70, 22, 4, 4, 'F');
+
+        doc.setTextColor(...primaryDark);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
-        doc.text('PERÍODO', pageWidth - 77, 20);
-        doc.setFontSize(7);
+        doc.text('PERÍODO DO RELATÓRIO', pageWidth - 85, 19);
+
+        doc.setTextColor(...darkColor);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(formatPeriod(), pageWidth - 77, 27);
+        doc.text(formatPeriod(), pageWidth - 85, 28);
 
         // ===== METRICS CARDS SECTION =====
-        const cardY = 50;
-        const cardHeight = 28;
+        const cardY = 55;
+        const cardHeight = 35;
         const cardWidth = (pageWidth - 40 - 15) / 4; // 4 cards with gaps
         const cardGap = 5;
 
         const metrics = [
-            { label: 'RECEBIDO', value: `${summary.totalReceived.toFixed(1)} kg`, color: [34, 197, 94] as [number, number, number] },
-            { label: 'CONSUMIDO', value: `${summary.totalConsumed.toFixed(1)} kg`, color: [239, 68, 68] as [number, number, number] },
-            { label: 'REFEIÇÕES', value: summary.totalStudents.toString(), color: [59, 130, 246] as [number, number, number] },
-            { label: 'DIAS ATIVOS', value: summary.uniqueDays.toString(), color: [245, 158, 11] as [number, number, number] },
+            {
+                label: 'TOTAL RECEBIDO',
+                value: `${summary.totalReceived.toFixed(1)} kg`,
+                subtext: 'Entrada de mercadorias',
+                color: [34, 197, 94] as [number, number, number]
+            },
+            {
+                label: 'TOTAL CONSUMIDO',
+                value: `${summary.totalConsumed.toFixed(1)} kg`,
+                subtext: 'Saída para merenda',
+                color: [239, 68, 68] as [number, number, number]
+            },
+            {
+                label: 'REFEIÇÕES SERVIDAS',
+                value: summary.totalStudents.toString(),
+                subtext: 'Alunos atendidos',
+                color: [59, 130, 246] as [number, number, number]
+            },
+            {
+                label: 'DIAS DE OPERAÇÃO',
+                value: summary.uniqueDays.toString(),
+                subtext: 'Dias com registro',
+                color: [245, 158, 11] as [number, number, number]
+            },
         ];
 
         metrics.forEach((metric, index) => {
             const x = 20 + (cardWidth + cardGap) * index;
 
-            // Card background
-            doc.setFillColor(...lightGray);
-            doc.roundedRect(x, cardY, cardWidth, cardHeight, 2, 2, 'F');
+            // Card background with shadow effect (simulated by darker rect behind)
+            doc.setFillColor(229, 231, 235); // Shadow color
+            doc.roundedRect(x + 1, cardY + 1, cardWidth, cardHeight, 3, 3, 'F');
 
-            // Colored left border
+            doc.setFillColor(255, 255, 255); // White bg
+            doc.roundedRect(x, cardY, cardWidth, cardHeight, 3, 3, 'F');
+
+            // Top colored bar
             doc.setFillColor(...metric.color);
-            doc.rect(x, cardY, 3, cardHeight, 'F');
+            doc.rect(x, cardY, cardWidth, 2, 'F');
 
             // Label
             doc.setFontSize(7);
             doc.setTextColor(...grayColor);
             doc.setFont('helvetica', 'bold');
-            doc.text(metric.label, x + 8, cardY + 10);
+            doc.text(metric.label, x + 5, cardY + 10);
 
             // Value
             doc.setFontSize(14);
             doc.setTextColor(...darkColor);
             doc.setFont('helvetica', 'bold');
-            doc.text(metric.value, x + 8, cardY + 22);
+            doc.text(metric.value, x + 5, cardY + 20);
+
+            // Subtext
+            doc.setFontSize(6);
+            doc.setTextColor(...grayColor);
+            doc.setFont('helvetica', 'normal');
+            doc.text(metric.subtext, x + 5, cardY + 28);
         });
 
         // ===== CONSUMPTION BY INGREDIENT =====
-        let currentY = cardY + cardHeight + 15;
+        let currentY = cardY + cardHeight + 20;
 
-        doc.setFontSize(12);
+        doc.setFontSize(14);
         doc.setTextColor(...darkColor);
         doc.setFont('helvetica', 'bold');
-        doc.text('Consumo por Ingrediente', 20, currentY);
+        doc.text('Análise de Consumo por Ingrediente', 20, currentY);
 
-        // Underline
+        // Modern decorative line
         doc.setDrawColor(...primaryColor);
-        doc.setLineWidth(1);
-        doc.line(20, currentY + 2, 80, currentY + 2);
+        doc.setLineWidth(1.5);
+        doc.line(20, currentY + 3, 40, currentY + 3);
+        doc.setDrawColor(229, 231, 235);
+        doc.line(42, currentY + 3, pageWidth - 20, currentY + 3);
 
         autoTable(doc, {
-            startY: currentY + 6,
-            head: [['Ingrediente', 'Quantidade Consumida']],
-            body: consumptionByIngredient.map(([name, amount]) => [name, `${amount.toFixed(1)} kg`]),
-            theme: 'plain',
+            startY: currentY + 8,
+            head: [['PRODUTO / INGREDIENTE', 'CONSUMO TOTAL (KG)']],
+            body: consumptionByIngredient.map(([name, amount]) => [
+                name.toUpperCase(),
+                amount.toFixed(1)
+            ]),
+            theme: 'grid',
             headStyles: {
-                fillColor: [...primaryColor] as [number, number, number],
-                textColor: [255, 255, 255],
+                fillColor: [243, 244, 246] as [number, number, number],
+                textColor: [55, 65, 81],
                 fontStyle: 'bold',
-                fontSize: 9,
-                cellPadding: 4
+                fontSize: 8,
+                halign: 'left',
+                lineColor: [229, 231, 235],
+                lineWidth: 0.1
             },
             bodyStyles: {
                 fontSize: 9,
-                cellPadding: 3
+                textColor: [17, 24, 39],
+                cellPadding: 4,
+                lineColor: [229, 231, 235],
+                lineWidth: 0.1
             },
-            alternateRowStyles: { fillColor: [249, 250, 251] },
+            alternateRowStyles: { fillColor: [255, 255, 255] },
             columnStyles: {
-                0: { cellWidth: 100 },
+                0: { cellWidth: 120 },
                 1: { cellWidth: 50, halign: 'right', fontStyle: 'bold' }
             },
             margin: { left: 20, right: 20 }
