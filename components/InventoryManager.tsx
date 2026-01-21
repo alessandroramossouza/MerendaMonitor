@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
-import { Plus, Edit2, AlertTriangle, Trash2, History } from 'lucide-react';
+import { Plus, Edit2, AlertTriangle, Trash2, History, Clock } from 'lucide-react';
 import { MovementHistory } from './MovementHistory';
 
 interface InventoryManagerProps {
@@ -33,6 +33,26 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     unit: 'kg'
   });
 
+  // Calculate nearest expiration for each ingredient
+  const expirationMap = useMemo(() => {
+    const map: Record<string, { date: string; daysLeft: number } | null> = {};
+    const today = new Date();
+
+    inventory.forEach(item => {
+      const itemSupplies = supplyLogs
+        .filter(log => log.ingredientId === item.id && log.expirationDate)
+        .map(log => ({
+          date: log.expirationDate!,
+          daysLeft: Math.ceil((new Date(log.expirationDate!).getTime() - today.getTime()) / (1000 * 3600 * 24))
+        }))
+        .sort((a, b) => a.daysLeft - b.daysLeft);
+
+      map[item.id] = itemSupplies.length > 0 ? itemSupplies[0] : null;
+    });
+
+    return map;
+  }, [inventory, supplyLogs]);
+
   const handleSave = () => {
     if (!formData.name || formData.currentStock === undefined) return;
 
@@ -63,6 +83,32 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     setFormData(item);
     setIsEditing(item.id);
     setIsAdding(true);
+  };
+
+  const getExpirationBadge = (itemId: string) => {
+    const exp = expirationMap[itemId];
+    if (!exp) return null;
+
+    if (exp.daysLeft < 0) {
+      return (
+        <span className="inline-flex items-center gap-1 text-red-700 bg-red-100 px-2 py-1 rounded-full text-xs font-bold">
+          <Clock className="w-3 h-3" /> VENCIDO
+        </span>
+      );
+    } else if (exp.daysLeft <= 7) {
+      return (
+        <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded-full text-xs font-bold">
+          <Clock className="w-3 h-3" /> {exp.daysLeft}d
+        </span>
+      );
+    } else if (exp.daysLeft <= 30) {
+      return (
+        <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-full text-xs font-bold">
+          <Clock className="w-3 h-3" /> {exp.daysLeft}d
+        </span>
+      );
+    }
+    return null;
   };
 
   return (
@@ -138,6 +184,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               <th className="p-4 font-semibold">Produto</th>
               <th className="p-4 font-semibold">Categoria</th>
               <th className="p-4 font-semibold text-right">Estoque Atual</th>
+              <th className="p-4 font-semibold text-center">Validade</th>
               <th className="p-4 font-semibold text-right">Status</th>
               <th className="p-4 font-semibold text-center">Ações</th>
             </tr>
@@ -150,6 +197,11 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                   <span className="bg-gray-100 px-2 py-1 rounded-full text-xs font-medium">{item.category}</span>
                 </td>
                 <td className="p-4 text-right font-mono font-medium">{item.currentStock.toFixed(1)} kg</td>
+                <td className="p-4 text-center">
+                  {getExpirationBadge(item.id) || (
+                    <span className="text-gray-400 text-xs">-</span>
+                  )}
+                </td>
                 <td className="p-4 text-right">
                   {item.currentStock <= item.minThreshold ? (
                     <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-full text-xs font-bold">
@@ -178,7 +230,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             ))}
             {inventory.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-gray-400">Nenhum item cadastrado no estoque.</td>
+                <td colSpan={6} className="p-8 text-center text-gray-400">Nenhum item cadastrado no estoque.</td>
               </tr>
             )}
           </tbody>
