@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
-import { FileText, Download, Calendar, BarChart3 } from 'lucide-react';
+import { FileText, Download, Calendar, BarChart3, FileSpreadsheet } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 interface ReportsProps {
     inventory: Ingredient[];
@@ -56,6 +57,70 @@ export const Reports: React.FC<ReportsProps> = ({ inventory, logs, supplyLogs })
         const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
             'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
         return `${months[parseInt(month) - 1]} de ${year}`;
+    };
+
+    // Generate Excel
+    const generateExcel = () => {
+        const workbook = XLSX.utils.book_new();
+
+        // Sheet 1: Resumo
+        const resumoData = [
+            ['Relatório MerendaMonitor', formatMonth(selectedMonth)],
+            [],
+            ['Métrica', 'Valor'],
+            ['Total Recebido (kg)', summary.totalReceived.toFixed(1)],
+            ['Total Consumido (kg)', summary.totalConsumed.toFixed(1)],
+            ['Refeições Servidas', summary.totalStudents],
+            ['Dias de Operação', summary.uniqueDays],
+            ['Média Alunos/Dia', summary.avgStudentsPerDay],
+        ];
+        const wsResumo = XLSX.utils.aoa_to_sheet(resumoData);
+        XLSX.utils.book_append_sheet(workbook, wsResumo, 'Resumo');
+
+        // Sheet 2: Estoque Atual
+        const estoqueData = [
+            ['Produto', 'Categoria', 'Estoque (kg)', 'Mínimo (kg)', 'Status'],
+            ...inventory.map(item => [
+                item.name,
+                item.category,
+                item.currentStock,
+                item.minThreshold,
+                item.currentStock <= item.minThreshold ? 'Baixo' : 'OK'
+            ])
+        ];
+        const wsEstoque = XLSX.utils.aoa_to_sheet(estoqueData);
+        XLSX.utils.book_append_sheet(workbook, wsEstoque, 'Estoque Atual');
+
+        // Sheet 3: Consumo Mensal
+        const consumoData = [
+            ['Data', 'Ingrediente', 'Quantidade (kg)', 'Alunos', 'Gramas/Aluno'],
+            ...filteredConsumption.map(log => [
+                log.date,
+                log.ingredientName,
+                log.amountUsed,
+                log.studentCount,
+                log.gramsPerStudent.toFixed(0)
+            ])
+        ];
+        const wsConsumo = XLSX.utils.aoa_to_sheet(consumoData);
+        XLSX.utils.book_append_sheet(workbook, wsConsumo, 'Consumo Mensal');
+
+        // Sheet 4: Entradas Mensais
+        const entradasData = [
+            ['Data', 'Ingrediente', 'Quantidade (kg)', 'Origem', 'Observações'],
+            ...filteredSupply.map(log => [
+                log.date,
+                log.ingredientName,
+                log.amountAdded,
+                log.source,
+                log.notes || ''
+            ])
+        ];
+        const wsEntradas = XLSX.utils.aoa_to_sheet(entradasData);
+        XLSX.utils.book_append_sheet(workbook, wsEntradas, 'Entradas Mensais');
+
+        // Save
+        XLSX.writeFile(workbook, `merenda_${selectedMonth}.xlsx`);
     };
 
     // Generate PDF
@@ -150,13 +215,22 @@ export const Reports: React.FC<ReportsProps> = ({ inventory, logs, supplyLogs })
                     </h2>
                     <p className="text-gray-500">Gere relatórios mensais para prestação de contas</p>
                 </div>
-                <button
-                    onClick={generatePDF}
-                    className="flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 font-bold shadow-lg transition-transform active:scale-95"
-                >
-                    <Download className="w-5 h-5" />
-                    Baixar PDF
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={generateExcel}
+                        className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 font-bold shadow-lg transition-transform active:scale-95"
+                    >
+                        <FileSpreadsheet className="w-5 h-5" />
+                        Baixar Excel
+                    </button>
+                    <button
+                        onClick={generatePDF}
+                        className="flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 font-bold shadow-lg transition-transform active:scale-95"
+                    >
+                        <Download className="w-5 h-5" />
+                        Baixar PDF
+                    </button>
+                </div>
             </header>
 
             {/* Month Selector */}
