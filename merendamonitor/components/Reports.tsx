@@ -147,121 +147,252 @@ export const Reports: React.FC<ReportsProps> = ({ inventory, logs, supplyLogs })
         XLSX.writeFile(workbook, `merenda_${startDate}_${endDate}.xlsx`);
     };
 
-    // Generate PDF
+    // Generate PDF - Ultra Modern Professional Design
     const generatePDF = () => {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
 
-        // Header
-        doc.setFontSize(20);
-        doc.setTextColor(16, 185, 129);
-        doc.text('MerendaMonitor', pageWidth / 2, 20, { align: 'center' });
+        // Colors
+        const primaryColor: [number, number, number] = [16, 185, 129]; // Emerald
+        const darkColor: [number, number, number] = [17, 24, 39]; // Gray 900
+        const grayColor: [number, number, number] = [107, 114, 128]; // Gray 500
+        const lightGray: [number, number, number] = [249, 250, 251]; // Gray 50
 
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`Relatório de ${formatPeriod()}`, pageWidth / 2, 28, { align: 'center' });
+        // ===== HEADER SECTION =====
+        // Gradient-like header bar
+        doc.setFillColor(...primaryColor);
+        doc.rect(0, 0, pageWidth, 40, 'F');
 
-        // Summary Box
-        doc.setFontSize(11);
-        doc.setDrawColor(200, 200, 200);
-        doc.setFillColor(249, 250, 251);
-        doc.roundedRect(14, 35, pageWidth - 28, 35, 3, 3, 'FD');
+        // Logo/Title
+        doc.setFontSize(24);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('MerendaMonitor', 20, 22);
 
-        doc.setTextColor(100, 100, 100);
-        doc.text('Resumo do Período', 20, 44);
+        // Subtitle
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Sistema de Gestão de Merenda Escolar', 20, 32);
 
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.text(`Total Recebido: ${summary.totalReceived.toFixed(1)} kg`, 20, 53);
-        doc.text(`Total Consumido: ${summary.totalConsumed.toFixed(1)} kg`, 20, 60);
-        doc.text(`Refeições Servidas: ${summary.totalStudents}`, pageWidth / 2, 53);
-        doc.text(`Dias de Operação: ${summary.uniqueDays}`, pageWidth / 2, 60);
-        doc.text(`Média Alunos/Dia: ${summary.avgStudentsPerDay}`, pageWidth / 2, 67);
+        // Period badge on header
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(pageWidth - 80, 12, 65, 20, 3, 3, 'F');
+        doc.setTextColor(...primaryColor);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PERÍODO', pageWidth - 77, 20);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text(formatPeriod(), pageWidth - 77, 27);
 
-        // Consumption by Ingredient Table
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-        doc.text('Consumo por Ingrediente', 14, 80);
+        // ===== METRICS CARDS SECTION =====
+        const cardY = 50;
+        const cardHeight = 28;
+        const cardWidth = (pageWidth - 40 - 15) / 4; // 4 cards with gaps
+        const cardGap = 5;
 
-        autoTable(doc, {
-            startY: 84,
-            head: [['Ingrediente', 'Total Consumido (kg)']],
-            body: consumptionByIngredient.map(([name, amount]) => [name, amount.toFixed(1)]),
-            theme: 'striped',
-            headStyles: { fillColor: [16, 185, 129] },
-            styles: { fontSize: 9 }
+        const metrics = [
+            { label: 'RECEBIDO', value: `${summary.totalReceived.toFixed(1)} kg`, color: [34, 197, 94] as [number, number, number] },
+            { label: 'CONSUMIDO', value: `${summary.totalConsumed.toFixed(1)} kg`, color: [239, 68, 68] as [number, number, number] },
+            { label: 'REFEIÇÕES', value: summary.totalStudents.toString(), color: [59, 130, 246] as [number, number, number] },
+            { label: 'DIAS ATIVOS', value: summary.uniqueDays.toString(), color: [245, 158, 11] as [number, number, number] },
+        ];
+
+        metrics.forEach((metric, index) => {
+            const x = 20 + (cardWidth + cardGap) * index;
+
+            // Card background
+            doc.setFillColor(...lightGray);
+            doc.roundedRect(x, cardY, cardWidth, cardHeight, 2, 2, 'F');
+
+            // Colored left border
+            doc.setFillColor(...metric.color);
+            doc.rect(x, cardY, 3, cardHeight, 'F');
+
+            // Label
+            doc.setFontSize(7);
+            doc.setTextColor(...grayColor);
+            doc.setFont('helvetica', 'bold');
+            doc.text(metric.label, x + 8, cardY + 10);
+
+            // Value
+            doc.setFontSize(14);
+            doc.setTextColor(...darkColor);
+            doc.setFont('helvetica', 'bold');
+            doc.text(metric.value, x + 8, cardY + 22);
         });
 
-        // Daily Consumption Detail
-        let currentY = (doc as any).lastAutoTable.finalY + 10;
+        // ===== CONSUMPTION BY INGREDIENT =====
+        let currentY = cardY + cardHeight + 15;
 
-        // Check if we need a new page
-        if (currentY > 250) {
+        doc.setFontSize(12);
+        doc.setTextColor(...darkColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Consumo por Ingrediente', 20, currentY);
+
+        // Underline
+        doc.setDrawColor(...primaryColor);
+        doc.setLineWidth(1);
+        doc.line(20, currentY + 2, 80, currentY + 2);
+
+        autoTable(doc, {
+            startY: currentY + 6,
+            head: [['Ingrediente', 'Quantidade Consumida']],
+            body: consumptionByIngredient.map(([name, amount]) => [name, `${amount.toFixed(1)} kg`]),
+            theme: 'plain',
+            headStyles: {
+                fillColor: [...primaryColor] as [number, number, number],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 9,
+                cellPadding: 4
+            },
+            bodyStyles: {
+                fontSize: 9,
+                cellPadding: 3
+            },
+            alternateRowStyles: { fillColor: [249, 250, 251] },
+            columnStyles: {
+                0: { cellWidth: 100 },
+                1: { cellWidth: 50, halign: 'right', fontStyle: 'bold' }
+            },
+            margin: { left: 20, right: 20 }
+        });
+
+        // ===== DAILY CONSUMPTION DETAIL =====
+        currentY = (doc as any).lastAutoTable.finalY + 15;
+
+        if (currentY > pageHeight - 60) {
             doc.addPage();
             currentY = 20;
         }
 
-        doc.setFontSize(11);
-        doc.text('Consumo Diário Detalhado', 14, currentY);
+        doc.setFontSize(12);
+        doc.setTextColor(...darkColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Registro Diário de Consumo', 20, currentY);
+
+        doc.setDrawColor(59, 130, 246);
+        doc.setLineWidth(1);
+        doc.line(20, currentY + 2, 78, currentY + 2);
 
         autoTable(doc, {
-            startY: currentY + 4,
-            head: [['Data', 'Ingrediente', 'Qtd (kg)', 'Alunos', 'g/Aluno']],
+            startY: currentY + 6,
+            head: [['Data', 'Ingrediente', 'Quantidade', 'Alunos', 'g/Aluno']],
             body: filteredConsumption.map(log => [
                 formatDate(log.date),
                 log.ingredientName,
-                log.amountUsed.toFixed(1),
-                log.studentCount,
-                log.gramsPerStudent.toFixed(0)
+                `${log.amountUsed.toFixed(1)} kg`,
+                log.studentCount.toString(),
+                `${log.gramsPerStudent.toFixed(0)}g`
             ]),
-            theme: 'striped',
-            headStyles: { fillColor: [59, 130, 246] },
-            styles: { fontSize: 8 },
+            theme: 'plain',
+            headStyles: {
+                fillColor: [59, 130, 246] as [number, number, number],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 8,
+                cellPadding: 3
+            },
+            bodyStyles: {
+                fontSize: 8,
+                cellPadding: 2.5
+            },
+            alternateRowStyles: { fillColor: [239, 246, 255] },
             columnStyles: {
                 0: { cellWidth: 25 },
-                1: { cellWidth: 50 },
-                2: { cellWidth: 25 },
-                3: { cellWidth: 25 },
-                4: { cellWidth: 25 }
-            }
+                1: { cellWidth: 55 },
+                2: { cellWidth: 28, halign: 'right' },
+                3: { cellWidth: 22, halign: 'center' },
+                4: { cellWidth: 22, halign: 'right' }
+            },
+            margin: { left: 20, right: 20 }
         });
 
-        // Current Stock Table
-        currentY = (doc as any).lastAutoTable.finalY + 10;
+        // ===== CURRENT STOCK =====
+        currentY = (doc as any).lastAutoTable.finalY + 15;
 
-        if (currentY > 250) {
+        if (currentY > pageHeight - 60) {
             doc.addPage();
             currentY = 20;
         }
 
-        doc.setFontSize(11);
-        doc.text('Estoque Atual', 14, currentY);
+        doc.setFontSize(12);
+        doc.setTextColor(...darkColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Estoque Atual', 20, currentY);
+
+        doc.setDrawColor(...primaryColor);
+        doc.setLineWidth(1);
+        doc.line(20, currentY + 2, 52, currentY + 2);
 
         autoTable(doc, {
-            startY: currentY + 4,
-            head: [['Produto', 'Categoria', 'Qtd (kg)', 'Status']],
+            startY: currentY + 6,
+            head: [['Produto', 'Categoria', 'Estoque', 'Status']],
             body: inventory.map(item => [
                 item.name,
                 item.category,
-                item.currentStock.toFixed(1),
+                `${item.currentStock.toFixed(1)} kg`,
                 item.currentStock <= item.minThreshold ? 'BAIXO' : 'OK'
             ]),
-            theme: 'striped',
-            headStyles: { fillColor: [16, 185, 129] },
-            styles: { fontSize: 9 }
+            theme: 'plain',
+            headStyles: {
+                fillColor: [...primaryColor] as [number, number, number],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 9,
+                cellPadding: 4
+            },
+            bodyStyles: {
+                fontSize: 9,
+                cellPadding: 3
+            },
+            alternateRowStyles: { fillColor: [249, 250, 251] },
+            columnStyles: {
+                0: { cellWidth: 60 },
+                1: { cellWidth: 40 },
+                2: { cellWidth: 35, halign: 'right' },
+                3: { cellWidth: 25, halign: 'center' }
+            },
+            didParseCell: (data) => {
+                if (data.column.index === 3 && data.section === 'body') {
+                    if (data.cell.raw === 'BAIXO') {
+                        data.cell.styles.textColor = [220, 38, 38];
+                        data.cell.styles.fontStyle = 'bold';
+                    } else {
+                        data.cell.styles.textColor = [22, 163, 74];
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                }
+            },
+            margin: { left: 20, right: 20 }
         });
 
-        // Footer
+        // ===== FOOTER =====
         const pageCount = doc.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
+
+            // Footer line
+            doc.setDrawColor(229, 231, 235);
+            doc.setLineWidth(0.5);
+            doc.line(20, pageHeight - 18, pageWidth - 20, pageHeight - 18);
+
+            // Footer text
             doc.setFontSize(8);
-            doc.setTextColor(150, 150, 150);
+            doc.setTextColor(...grayColor);
+            doc.setFont('helvetica', 'normal');
             doc.text(
-                `Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')} - Página ${i} de ${pageCount}`,
-                pageWidth / 2,
-                doc.internal.pageSize.getHeight() - 10,
-                { align: 'center' }
+                `Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`,
+                20,
+                pageHeight - 10
+            );
+            doc.text(
+                `Página ${i} de ${pageCount}`,
+                pageWidth - 20,
+                pageHeight - 10,
+                { align: 'right' }
             );
         }
 
