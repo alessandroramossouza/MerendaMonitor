@@ -7,6 +7,7 @@ import { AiAdvisor } from './components/AiAdvisor';
 import { SupplyManager } from './components/SupplyManager';
 import { CookingCalculator } from './components/CookingCalculator';
 import { Reports } from './components/Reports';
+import { WeeklyMenu } from './components/WeeklyMenu';
 import { Ingredient, ConsumptionLog, UserRole, SupplyLog } from './types';
 import { supabase } from './services/supabase';
 
@@ -262,6 +263,10 @@ const App: React.FC = () => {
 
         {activeTab === 'calculator' && role === 'admin' && (
           <CookingCalculator inventory={inventory} />
+        )}
+
+        {activeTab === 'weekly-menu' && role === 'admin' && (
+          <WeeklyMenu inventory={inventory} />
         )}
 
         {activeTab === 'reports' && role === 'admin' && (

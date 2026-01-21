@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut, Truck, Calculator, FileText } from 'lucide-react';
+import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut, Truck, Calculator, FileText, CalendarDays } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface SidebarProps {
@@ -16,6 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       { id: 'inventory', label: 'Estoque', icon: ShoppingBasket },
       { id: 'supply', label: 'Entradas', icon: Truck },
       { id: 'calculator', label: 'Calculadora', icon: Calculator },
+      { id: 'weekly-menu', label: 'Cardápio', icon: CalendarDays },
       { id: 'reports', label: 'Relatórios', icon: FileText },
       { id: 'insights', label: 'IA Insights', icon: BrainCircuit },
     ]
