@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut, Truck } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface SidebarProps {
@@ -10,15 +10,16 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setActiveTab, switchRole }) => {
-  const menuItems = currentRole === 'admin' 
+  const menuItems = currentRole === 'admin'
     ? [
-        { id: 'dashboard', label: 'Visão Geral', icon: LayoutDashboard },
-        { id: 'inventory', label: 'Estoque', icon: ShoppingBasket },
-        { id: 'insights', label: 'IA Insights', icon: BrainCircuit },
-      ]
+      { id: 'dashboard', label: 'Visão Geral', icon: LayoutDashboard },
+      { id: 'inventory', label: 'Estoque', icon: ShoppingBasket },
+      { id: 'supply', label: 'Entradas', icon: Truck },
+      { id: 'insights', label: 'IA Insights', icon: BrainCircuit },
+    ]
     : [
-        { id: 'daily-log', label: 'Registro Diário', icon: Utensils },
-      ];
+      { id: 'daily-log', label: 'Registro Diário', icon: Utensils },
+    ];
 
   return (
     <div className="w-64 bg-emerald-900 text-white flex flex-col h-screen fixed left-0 top-0 shadow-xl z-50">
@@ -37,11 +38,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-              activeTab === item.id
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === item.id
                 ? 'bg-emerald-700 text-white shadow-md'
                 : 'text-emerald-100 hover:bg-emerald-800'
-            }`}
+              }`}
           >
             <item.icon className="w-5 h-5" />
             <span className="font-medium">{item.label}</span>

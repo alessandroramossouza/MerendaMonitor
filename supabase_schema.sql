@@ -10,7 +10,7 @@ create table ingredients (
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- Tabela de Logs de Consumo
+-- Tabela de Logs de Consumo (Saídas)
 create table consumption_logs (
   id uuid default gen_random_uuid() primary key,
   date date default current_date,
@@ -19,6 +19,18 @@ create table consumption_logs (
   amount_used numeric not null,
   student_count integer not null,
   grams_per_student numeric not null,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- NOVA TABELA: Logs de Abastecimento (Entradas)
+create table supply_logs (
+  id uuid default gen_random_uuid() primary key,
+  date date default current_date,
+  ingredient_id uuid references ingredients(id),
+  ingredient_name text not null,
+  amount_added numeric not null,
+  source text default 'Fornecedor', -- Prefeitura, Doação, etc.
+  notes text,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 

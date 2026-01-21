@@ -4,7 +4,8 @@ import { InventoryManager } from './components/InventoryManager';
 import { DailyLog } from './components/DailyLog';
 import { Dashboard } from './components/Dashboard';
 import { AiAdvisor } from './components/AiAdvisor';
-import { Ingredient, ConsumptionLog, UserRole } from './types';
+import { SupplyManager } from './components/SupplyManager';
+import { Ingredient, ConsumptionLog, UserRole, SupplyLog } from './types';
 import { supabase } from './services/supabase';
 
 const App: React.FC = () => {
@@ -15,6 +16,7 @@ const App: React.FC = () => {
   // App State "Database"
   const [inventory, setInventory] = useState<Ingredient[]>([]);
   const [logs, setLogs] = useState<ConsumptionLog[]>([]);
+  const [supplyLogs, setSupplyLogs] = useState<SupplyLog[]>([]);
 
   // Fetch Data from Supabase
   const fetchData = async () => {
@@ -38,7 +40,7 @@ const App: React.FC = () => {
         unit: item.unit
       }));
 
-      // Fetch Logs
+      // Fetch Consumption Logs
       const { data: logsData, error: logsError } = await supabase
         .from('consumption_logs')
         .select('*')
@@ -56,8 +58,30 @@ const App: React.FC = () => {
         gramsPerStudent: item.grams_per_student
       }));
 
+      // Fetch Supply Logs (Recent)
+      const { data: supplyData, error: supplyError } = await supabase
+        .from('supply_logs')
+        .select('*')
+        .order('expiration_date', { ascending: true }); // Order by expiration to find nearest
+
+      if (supplyError && supplyError.code !== 'PGRST116') { // Ignore if table missing initially
+        console.warn('Supply logs fetch error', supplyError);
+      }
+
+      const formattedSupplyLogs: SupplyLog[] = (supplyData || []).map((item: any) => ({
+        id: item.id,
+        date: item.date,
+        ingredientId: item.ingredient_id,
+        ingredientName: item.ingredient_name,
+        amountAdded: item.amount_added,
+        source: item.source,
+        notes: item.notes,
+        expirationDate: item.expiration_date
+      }));
+
       setInventory(formattedIngredients);
       setLogs(formattedLogs);
+      setSupplyLogs(formattedSupplyLogs);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -94,13 +118,6 @@ const App: React.FC = () => {
   };
 
   const handleAddInventory = async (newItem: Ingredient) => {
-    // We don't optimistically update here easily because we need the real UUID from DB if we want to be safe,
-    // actually we can with a temp ID but simpler to just wait.
-
-    // However, the InventoryManager usually passes a generated ID. 
-    // Let's ignore the passed ID and let DB generate one, or use the passed one if valid UUID.
-    // For simplicity, let's insert and refetch.
-
     const { error } = await supabase
       .from('ingredients')
       .insert([{
@@ -168,6 +185,37 @@ const App: React.FC = () => {
     fetchData();
   };
 
+  const handleSupplyEntry = async (ingredientId: string, amount: number, source: string, notes: string, expirationDate?: string) => {
+    const item = inventory.find(i => i.id === ingredientId);
+    if (!item) return;
+
+    const date = new Date().toISOString().split('T')[0];
+
+    // 1. Create Supply Log
+    const { error: logError } = await supabase
+      .from('supply_logs')
+      .insert([{
+        date: date,
+        ingredient_id: ingredientId,
+        ingredient_name: item.name,
+        amount_added: amount,
+        source: source,
+        notes: notes,
+        expiration_date: expirationDate
+      }]);
+
+    if (logError) {
+      console.error('Error adding supply log:', logError);
+    }
+
+    // 2. Update Stock (Addition)
+    const newStock = item.currentStock + amount;
+    const updatedItem = { ...item, currentStock: newStock };
+
+    await handleUpdateInventory(updatedItem);
+    fetchData();
+  };
+
   const switchRole = () => {
     const newRole = role === 'admin' ? 'cook' : 'admin';
     setRole(newRole);
@@ -189,7 +237,7 @@ const App: React.FC = () => {
 
       <main className="flex-1 ml-64">
         {activeTab === 'dashboard' && role === 'admin' && (
-          <Dashboard inventory={inventory} logs={logs} />
+          <Dashboard inventory={inventory} logs={logs} supplyLogs={supplyLogs} />
         )}
 
         {activeTab === 'inventory' && role === 'admin' && (
@@ -198,6 +246,13 @@ const App: React.FC = () => {
             onUpdateInventory={handleUpdateInventory}
             onDelete={handleDeleteInventory}
             onAdd={handleAddInventory}
+          />
+        )}
+
+        {activeTab === 'supply' && role === 'admin' && (
+          <SupplyManager
+            inventory={inventory}
+            onSupplyEntry={handleSupplyEntry}
           />
         )}
 
