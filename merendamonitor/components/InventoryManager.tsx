@@ -2,6 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
 import { Plus, Edit2, AlertTriangle, Trash2, History, Clock, Package } from 'lucide-react';
 import { MovementHistory } from './MovementHistory';
+import { calculateStockForecast, StockForecast } from '../services/forecasting';
+import { TrendingDown, CalendarClock, CheckCircle2, AlertOctagon } from 'lucide-react';
+
 
 interface InventoryManagerProps {
   inventory: Ingredient[];
@@ -52,7 +55,16 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     });
 
     return map;
+    return map;
   }, [inventory, supplyLogs]);
+
+  // Calculate Forecasts
+  const forecasts = useMemo(() => {
+    return calculateStockForecast(inventory, consumptionLogs);
+  }, [inventory, consumptionLogs]);
+
+  const getForecast = (id: string) => forecasts.find(f => f.ingredientId === id);
+
 
   const handleSave = () => {
     if (!formData.name) return;
@@ -138,7 +150,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
         <div>
           <p className="text-blue-800 font-medium">Como funciona?</p>
           <p className="text-blue-700 text-sm">
-            1. Cadastre o produto aqui → 2. Vá em <strong>Entradas</strong> para abastecer o estoque com validade
+            1. Cadastre o produto aqui → 2. Vá em <strong>Entradas</strong> para abastecer.<br />
+            3. O sistema calculará automaticamente quantos dias o estoque vai durar com base no consumo.
           </p>
         </div>
       </div>
@@ -199,7 +212,8 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
               <th className="p-4 font-semibold">Produto</th>
               <th className="p-4 font-semibold">Categoria</th>
               <th className="p-4 font-semibold text-right">Estoque Atual</th>
-              <th className="p-4 font-semibold text-center">Próx. Validade</th>
+              <th className="p-4 font-semibold text-center">Consumo Médio</th>
+              <th className="p-4 font-semibold text-center">Previsão</th>
               <th className="p-4 font-semibold text-right">Status</th>
               <th className="p-4 font-semibold text-center">Ações</th>
             </tr>
@@ -216,23 +230,74 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                     {item.currentStock.toFixed(1)} {item.unit}
                   </span>
                 </td>
+
+                {/* Consumo Médio */}
                 <td className="p-4 text-center">
-                  {getExpirationBadge(item.id) || (
-                    <span className="text-gray-400 text-xs">Sem validade</span>
-                  )}
+                  <span className="text-gray-600 text-sm">
+                    {getForecast(item.id)?.averageDailyUsage
+                      ? `${getForecast(item.id)?.averageDailyUsage.toFixed(2)} ${item.unit}/dia`
+                      : <span className="text-gray-400">-</span>}
+                  </span>
                 </td>
+
+                {/* Previsão / Days Remaining */}
+                <td className="p-4 text-center">
+                  {(() => {
+                    const f = getForecast(item.id);
+                    if (!f || f.averageDailyUsage === 0) return <span className="text-gray-400 text-xs">Sem dados</span>;
+
+                    if (item.currentStock === 0) return <span className="text-red-400 font-bold text-xs">Sem estoque</span>;
+
+                    const days = Math.floor(f.daysRemaining);
+                    const isCritical = days < 7;
+                    const isWarning = days < 15;
+
+                    return (
+                      <div className="flex flex-col items-center">
+                        <span className={`font-bold ${isCritical ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          {days > 180 ? '> 6 meses' : `${days} dias`}
+                        </span>
+                        {/* Monthly Sufficiency Indicator */}
+                        {!f.monthlySufficiency && (
+                          <span className="text-[10px] text-red-500 bg-red-50 px-1 rounded border border-red-100 mt-1 whitespace-nowrap">
+                            Falta no mês
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </td>
+
                 <td className="p-4 text-right">
-                  {item.currentStock <= 0 ? (
-                    <span className="inline-flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-xs font-bold">
-                      Sem estoque
-                    </span>
-                  ) : item.currentStock <= item.minThreshold ? (
-                    <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-full text-xs font-bold">
-                      <AlertTriangle className="w-3 h-3" /> Baixo
-                    </span>
-                  ) : (
-                    <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full text-xs font-bold">OK</span>
-                  )}
+                  {(() => {
+                    const f = getForecast(item.id);
+                    if (item.currentStock <= 0) {
+                      return (
+                        <span className="inline-flex items-center gap-1 text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-xs font-bold">
+                          Esgotado
+                        </span>
+                      );
+                    }
+                    if (f?.status === 'critical') {
+                      return (
+                        <span className="inline-flex items-center gap-1 text-red-50 bg-red-600 px-2 py-1 rounded-full text-xs font-bold shadow-sm animate-pulse">
+                          <AlertOctagon className="w-3 h-3" /> Crítico
+                        </span>
+                      );
+                    }
+                    if (f?.status === 'warning') {
+                      return (
+                        <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-100 px-2 py-1 rounded-full text-xs font-bold border border-amber-200">
+                          <AlertTriangle className="w-3 h-3" /> Atenção
+                        </span>
+                      );
+                    }
+                    return (
+                      <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full text-xs font-bold border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" /> Seguro
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td className="p-4 flex justify-center gap-2">
                   <button
@@ -257,7 +322,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             ))}
             {inventory.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-gray-400">
+                <td colSpan={7} className="p-8 text-center text-gray-400">
                   Nenhum produto cadastrado. Clique em "Novo Produto" para começar.
                 </td>
               </tr>
