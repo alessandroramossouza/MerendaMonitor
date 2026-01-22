@@ -38,7 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
     ];
 
   return (
-    <div className="w-64 bg-emerald-900 text-white flex flex-col h-screen fixed left-0 top-0 shadow-xl z-50">
+    <div className="w-64 bg-emerald-900 text-white flex flex-col h-screen fixed left-0 top-0 shadow-xl z-50 overflow-hidden">
       <div className="p-6 border-b border-emerald-800">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Utensils className="w-8 h-8 text-emerald-400" />
@@ -49,20 +49,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
         </p>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2">
-        {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === item.id
-              ? 'bg-emerald-700 text-white shadow-md'
-              : 'text-emerald-100 hover:bg-emerald-800'
-              }`}
-          >
-            <item.icon className="w-5 h-5" />
-            <span className="font-medium">{item.label}</span>
-          </button>
-        ))}
+      <nav className="flex-1 min-h-0 overflow-y-auto sidebar-scrollbar">
+        <div className="p-4 space-y-2">
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeTab === item.id
+                ? 'bg-emerald-700 text-white shadow-md'
+                : 'text-emerald-100 hover:bg-emerald-800'
+                }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="font-medium">{item.label}</span>
+            </button>
+          ))}
+        </div>
       </nav>
 
       <div className="p-4 border-t border-emerald-800">
