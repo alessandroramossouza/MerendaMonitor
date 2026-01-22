@@ -4,6 +4,9 @@ import { FileText, Download, Calendar, BarChart3, FileSpreadsheet, CalendarRange
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { calculateStockForecast } from '../services/forecasting';
+import { AlertTriangle, ShieldCheck, Hourglass } from 'lucide-react';
+
 
 interface ReportsProps {
     inventory: Ingredient[];
@@ -71,7 +74,22 @@ export const Reports: React.FC<ReportsProps> = ({ inventory, logs, supplyLogs })
             grouped[log.date].students = Math.max(grouped[log.date].students, log.studentCount);
         });
         return Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]));
+        return Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]));
     }, [filteredConsumption]);
+
+    // Forecast Data
+    const forecast = useMemo(() => calculateStockForecast(inventory, logs), [inventory, logs]);
+
+    const forecastSummary = useMemo(() => {
+        const critical = forecast.filter(f => f.status === 'critical').length;
+        const warning = forecast.filter(f => f.status === 'warning').length;
+        const safe = forecast.filter(f => f.status === 'safe' || f.status === 'abundant').length;
+        // Items that won't last the month
+        const insufficientForMonth = forecast.filter(f => !f.monthlySufficiency && f.averageDailyUsage > 0).length;
+
+        return { critical, warning, safe, insufficientForMonth };
+    }, [forecast]);
+
 
     // Format date for display
     const formatDate = (dateStr: string) => {
@@ -165,12 +183,7 @@ export const Reports: React.FC<ReportsProps> = ({ inventory, logs, supplyLogs })
         doc.setFillColor(...primaryColor);
         doc.rect(0, 0, pageWidth, 45, 'F');
 
-        // Subtle pattern overlay on header
-        doc.setFillColor(255, 255, 255);
-        doc.setGState(new doc.GState({ opacity: 0.1 }));
-        doc.circle(pageWidth - 20, 0, 40, 'F');
-        doc.circle(20, 45, 30, 'F');
-        doc.setGState(new doc.GState({ opacity: 1.0 }));
+
 
         // Logo/Title
         doc.setFontSize(26);
@@ -596,6 +609,94 @@ export const Reports: React.FC<ReportsProps> = ({ inventory, logs, supplyLogs })
                     </table>
                 </div>
             </div>
+            {/* Forecast / Sufficiency Dashboard */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl shadow-sm border border-indigo-100">
+                <h3 className="text-xl font-bold text-indigo-900 mb-6 flex items-center gap-2">
+                    <Hourglass className="text-indigo-600" />
+                    Previsão de Suficiência (Estoque vs. Consumo)
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-red-200 flex items-center gap-4">
+                        <div className="p-3 bg-red-100 text-red-600 rounded-full">
+                            <AlertTriangle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-gray-500">Risco Imediato (&lt;7 dias)</p>
+                            <h4 className="text-2xl font-bold text-red-700">{forecastSummary.critical} Itens</h4>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-amber-200 flex items-center gap-4">
+                        <div className="p-3 bg-amber-100 text-amber-600 rounded-full">
+                            <AlertTriangle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-gray-500">Não dura o mês</p>
+                            <h4 className="text-2xl font-bold text-amber-700">{forecastSummary.insufficientForMonth} Itens</h4>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-emerald-200 flex items-center gap-4">
+                        <div className="p-3 bg-emerald-100 text-emerald-600 rounded-full">
+                            <ShieldCheck className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-gray-500">Estoque Seguro</p>
+                            <h4 className="text-2xl font-bold text-emerald-700">{forecastSummary.safe} Itens</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-100">
+                    <table className="w-full">
+                        <thead className="bg-indigo-50 text-indigo-900">
+                            <tr>
+                                <th className="p-4 text-left font-semibold">Produto</th>
+                                <th className="p-4 text-right font-semibold">Consumo Diário</th>
+                                <th className="p-4 text-right font-semibold">Dias Restantes</th>
+                                <th className="p-4 text-center font-semibold">Previsão Fim</th>
+                                <th className="p-4 text-center font-semibold text-xs">Status Mês</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 text-sm">
+                            {forecast
+                                .filter(f => f.averageDailyUsage > 0)
+                                .sort((a, b) => a.daysRemaining - b.daysRemaining)
+                                .slice(0, 5) // Show top 5 critical
+                                .map(f => (
+                                    <tr key={f.ingredientId} className={f.daysRemaining < 15 ? 'bg-red-50/30' : ''}>
+                                        <td className="p-4 font-medium text-gray-800">{f.ingredientName}</td>
+                                        <td className="p-4 text-right">{f.averageDailyUsage.toFixed(2)} kg/dia</td>
+                                        <td className="p-4 text-right font-bold">
+                                            <span className={f.daysRemaining < 7 ? 'text-red-600' : f.daysRemaining < 15 ? 'text-amber-600' : 'text-emerald-600'}>
+                                                {Math.floor(f.daysRemaining)} dias
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center text-gray-500">
+                                            {f.projectedStockoutDate?.toLocaleDateString('pt-BR')}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            {!f.monthlySufficiency ? (
+                                                <span className="text-red-600 font-bold text-xs bg-red-100 px-2 py-1 rounded">FALTARÁ</span>
+                                            ) : (
+                                                <span className="text-emerald-600 font-bold text-xs bg-emerald-100 px-2 py-1 rounded">COBRE</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            {forecast.filter(f => f.averageDailyUsage > 0).length === 0 && (
+                                <tr><td colSpan={5} className="p-8 text-center text-gray-400">Sem dados de consumo suficientes para previsão.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                    <div className="p-3 text-center text-indigo-500 text-xs font-medium border-t border-indigo-50 hover:bg-indigo-50 cursor-pointer">
+                        Ver Lista Completa de Previsões
+                    </div>
+                </div>
+            </div>
+
         </div>
     );
 };
+

@@ -14,6 +14,15 @@ import { Login } from './components/Login';
 import { Ingredient, ConsumptionLog, UserRole, SupplyLog } from './types';
 import { supabase } from './services/supabase';
 
+// NEW COMPONENTS
+import { WasteTracker } from './components/WasteTracker';
+import { SchoolCalendar } from './components/SchoolCalendar';
+import { WeeklyControl } from './components/WeeklyControl';
+import { MonthlyControl } from './components/MonthlyControl';
+import { RecipeManager } from './components/RecipeManager';
+import { SupplierManager } from './components/SupplierManager';
+import { NotificationCenter } from './components/NotificationCenter';
+
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>('cook');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -314,6 +323,35 @@ const App: React.FC = () => {
 
         {activeTab === 'insights' && role === 'admin' && (
           <AiAdvisor inventory={inventory} logs={logs} />
+        )}
+
+        {/* NEW FEATURES */}
+        {activeTab === 'waste-tracker' && (
+          <WasteTracker inventory={inventory} onRefresh={fetchData} />
+        )}
+
+        {activeTab === 'school-calendar' && role === 'admin' && (
+          <SchoolCalendar />
+        )}
+
+        {activeTab === 'weekly-control' && role === 'admin' && (
+          <WeeklyControl inventory={inventory} logs={logs} supplyLogs={supplyLogs} />
+        )}
+
+        {activeTab === 'monthly-control' && role === 'admin' && (
+          <MonthlyControl inventory={inventory} logs={logs} supplyLogs={supplyLogs} />
+        )}
+
+        {activeTab === 'recipe-manager' && role === 'admin' && (
+          <RecipeManager inventory={inventory} onRefresh={fetchData} />
+        )}
+
+        {activeTab === 'supplier-manager' && role === 'admin' && (
+          <SupplierManager />
+        )}
+
+        {activeTab === 'notifications' && role === 'admin' && (
+          <NotificationCenter inventory={inventory} logs={logs} supplyLogs={supplyLogs} />
         )}
       </main>
     </div>

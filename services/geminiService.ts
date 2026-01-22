@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { Ingredient, ConsumptionLog } from "../types";
+import { calculateStockForecast } from "./forecasting";
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
@@ -12,6 +13,19 @@ export const generateKitchenInsights = async (
       .map(i => `- ${i.name}: ${i.currentStock}kg (Mínimo: ${i.minThreshold}kg)`)
       .join('\n');
 
+    // Calculate Forecasts
+    const forecasts = calculateStockForecast(inventory, logs);
+    const riskItems = forecasts
+      .filter(f => f.status === 'critical' || f.status === 'warning')
+      .map(f => `- ⚠️ ${f.ingredientName}: Dura apenas ${Math.floor(f.daysRemaining)} dias (${f.averageDailyUsage.toFixed(2)}kg/dia)`)
+      .join('\n');
+
+    const safeItems = forecasts
+      .filter(f => f.status === 'safe' && !f.monthlySufficiency)
+      .map(f => `- ⚠️ ${f.ingredientName}: Dura ${Math.floor(f.daysRemaining)} dias, mas NÃO cobre o mês inteiro.`)
+      .join('\n');
+
+
     // Get last 3 days of logs
     const recentLogs = logs.slice(-10).map(l =>
       `- ${l.date}: Usou ${l.amountUsed}kg de ${l.ingredientName} para ${l.studentCount} alunos (${l.gramsPerStudent.toFixed(1)}g/aluno)`
@@ -23,15 +37,20 @@ export const generateKitchenInsights = async (
       ESTOQUE ATUAL:
       ${inventorySummary}
 
+      🚨 PREVISÃO E RISCOS (CRÍTICO):
+      ${riskItems || "Nenhum item crítico no momento."}
+      ${safeItems}
+
       CONSUMO RECENTE:
       ${recentLogs}
 
       Por favor, forneça:
-      1. Sugestões de cardápio baseadas no que temos muito no estoque.
-      2. Alertas nutricionais se o consumo por aluno (gramas/aluno) parecer muito baixo ou muito alto.
-      3. Dicas para evitar desperdício baseadas nos itens com estoque crítico.
+      1. 🚨 **AÇÃO IMEDIATA**: Se houver itens na lista de "Previsão e Riscos", sugira ações urgentes (compras ou substituições).
+      2. 📅 **Planejamento**: Sugestões de cardápio priorizando o que temos em abundância.
+      3. 📊 **Análise de Consumo**: Comentários sobre os itens que não vão durar o mês.
+      4. Dicas para evitar desperdício.
 
-      Responda em formato Markdown, seja conciso, profissional e use emojis para facilitar a leitura.
+      Responda em formato Markdown, seja direto, profissional e use emojis.
     `;
 
     const response = await ai.models.generateContent({

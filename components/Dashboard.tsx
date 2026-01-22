@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { AlertTriangle, TrendingDown, Package, Clock } from 'lucide-react';
+import { AlertTriangle, TrendingDown, Package, Clock, Hourglass } from 'lucide-react';
+import { calculateStockForecast } from '../services/forecasting';
+
 
 interface DashboardProps {
   inventory: Ingredient[];
@@ -12,6 +14,11 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ inventory, logs, supplyLogs = [] }) => {
   // Low Stock Items
   const lowStockItems = inventory.filter(item => item.currentStock <= item.minThreshold);
+
+  // Forecast Data
+  const forecast = useMemo(() => calculateStockForecast(inventory, logs), [inventory, logs]);
+  const criticalStockItems = forecast.filter(f => f.status === 'critical' || f.daysRemaining < 7);
+
 
   // Calculate Expiration Alerts (Items expiring in next 30 days)
   const expiringItems = useMemo(() => {
@@ -49,7 +56,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ inventory, logs, supplyLog
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
           <div className="flex justify-between items-start">
             <div>
@@ -61,6 +68,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ inventory, logs, supplyLog
             </div>
           </div>
         </div>
+
+        {/* Forecast Card: Items running out soon */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-purple-100">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Acabando em &lt;7 dias</p>
+              <h3 className={`text-3xl font-bold mt-2 ${criticalStockItems.length > 0 ? 'text-purple-600' : 'text-gray-400'}`}>
+                {criticalStockItems.length}
+              </h3>
+            </div>
+            <div className="p-3 bg-purple-100 text-purple-600 rounded-xl">
+              <Hourglass className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100">
           <div className="flex justify-between items-start">
