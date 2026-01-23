@@ -7,7 +7,7 @@ interface ClassroomManagerProps {
   schoolId?: string;
 }
 
-export const ClassroomManager: React.FC<ClassroomManagerProps> = ({ schoolId = '00000000-0000-0000-0000-000000000000' }) => {
+export const ClassroomManager: React.FC<ClassroomManagerProps> = ({ schoolId: initialPropSchoolId = '00000000-0000-0000-0000-000000000000' }) => {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -15,6 +15,9 @@ export const ClassroomManager: React.FC<ClassroomManagerProps> = ({ schoolId = '
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+
+  // State to hold the actual valid school ID
+  const [schoolId, setSchoolId] = useState(initialPropSchoolId);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -26,8 +29,28 @@ export const ClassroomManager: React.FC<ClassroomManagerProps> = ({ schoolId = '
   });
 
   React.useEffect(() => {
+    // If we have the dummy ID, try to fetch the real one
+    if (schoolId === '00000000-0000-0000-0000-000000000000') {
+      fetchSchoolId();
+    }
     fetchData();
   }, []);
+
+  const fetchSchoolId = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id')
+        .limit(1)
+        .single();
+
+      if (data) {
+        setSchoolId(data.id);
+      }
+    } catch (error) {
+      console.error('Error fetching school ID', error);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -115,6 +138,12 @@ export const ClassroomManager: React.FC<ClassroomManagerProps> = ({ schoolId = '
     e.preventDefault();
     if (!formData.name || !formData.gradeId) {
       alert('Preencha os campos obrigatórios: Nome e Série');
+      return;
+    }
+
+    // Validation for School ID
+    if (schoolId === '00000000-0000-0000-0000-000000000000') {
+      alert('Erro: Nenhuma escola encontrada. Por favor, preencha os "Dados da Escola" primeiro.');
       return;
     }
 
@@ -399,8 +428,8 @@ export const ClassroomManager: React.FC<ClassroomManagerProps> = ({ schoolId = '
       {/* Classrooms Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {classrooms.map(classroom => {
-          const occupancy = classroom.capacity > 0 
-            ? ((classroom.totalStudents || 0) / classroom.capacity) * 100 
+          const occupancy = classroom.capacity > 0
+            ? ((classroom.totalStudents || 0) / classroom.capacity) * 100
             : 0;
           const occupancyColor = occupancy >= 90 ? 'bg-red-500' : occupancy >= 70 ? 'bg-yellow-500' : 'bg-green-500';
 

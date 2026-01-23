@@ -7,7 +7,7 @@ interface StudentManagerProps {
   schoolId?: string;
 }
 
-export const StudentManager: React.FC<StudentManagerProps> = ({ schoolId = '00000000-0000-0000-0000-000000000000' }) => {
+export const StudentManager: React.FC<StudentManagerProps> = ({ schoolId: initialPropSchoolId = '00000000-0000-0000-0000-000000000000' }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -17,6 +17,9 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ schoolId = '0000
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClassroom, setFilterClassroom] = useState('all');
   const [filterStatus, setFilterStatus] = useState('active');
+
+  // State to hold the actual valid school ID
+  const [schoolId, setSchoolId] = useState(initialPropSchoolId);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -39,8 +42,28 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ schoolId = '0000
   });
 
   React.useEffect(() => {
+    // If we have the dummy ID, try to fetch the real one
+    if (schoolId === '00000000-0000-0000-0000-000000000000') {
+      fetchSchoolId();
+    }
     fetchData();
   }, []);
+
+  const fetchSchoolId = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id')
+        .limit(1)
+        .single();
+
+      if (data) {
+        setSchoolId(data.id);
+      }
+    } catch (error) {
+      console.error('Error fetching school ID', error);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -118,6 +141,12 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ schoolId = '0000
     e.preventDefault();
     if (!formData.name || !formData.guardianName || !formData.guardianPhone) {
       alert('Preencha os campos obrigatórios: Nome do aluno, Nome e Telefone do responsável');
+      return;
+    }
+
+    // Validation for School ID
+    if (schoolId === '00000000-0000-0000-0000-000000000000') {
+      alert('Erro: Nenhuma escola encontrada. Por favor, preencha os "Dados da Escola" primeiro.');
       return;
     }
 
@@ -240,10 +269,10 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ schoolId = '0000
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
       const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.guardianName.toLowerCase().includes(searchTerm.toLowerCase());
+        student.guardianName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesClassroom = filterClassroom === 'all' || student.classroomId === filterClassroom;
       const matchesStatus = filterStatus === 'all' || student.enrollmentStatus === filterStatus;
-      
+
       return matchesSearch && matchesClassroom && matchesStatus;
     });
   }, [students, searchTerm, filterClassroom, filterStatus]);
