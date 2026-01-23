@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { AlertTriangle, TrendingDown, Package, Clock, Hourglass } from 'lucide-react';
+import { AlertTriangle, TrendingDown, Package, Clock, Hourglass, Users, ChefHat } from 'lucide-react';
 import { calculateStockForecast } from '../services/forecasting';
+import { getTodayAttendanceSummary } from '../services/notifications';
 
 
 interface DashboardProps {
@@ -11,7 +12,29 @@ interface DashboardProps {
   supplyLogs?: SupplyLog[];
 }
 
+interface AttendanceSummary {
+  totalStudents: number;
+  byShift: { shift: string; count: number }[];
+  byClassroom: { name: string; count: number }[];
+}
+
 export const Dashboard: React.FC<DashboardProps> = ({ inventory, logs, supplyLogs = [] }) => {
+  // Attendance Summary State
+  const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary>({
+    totalStudents: 0,
+    byShift: [],
+    byClassroom: []
+  });
+
+  // Fetch attendance summary on mount
+  useEffect(() => {
+    const loadAttendance = async () => {
+      const summary = await getTodayAttendanceSummary();
+      setAttendanceSummary(summary);
+    };
+    loadAttendance();
+  }, []);
+
   // Low Stock Items
   const lowStockItems = inventory.filter(item => item.currentStock <= item.minThreshold);
 
@@ -56,7 +79,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ inventory, logs, supplyLog
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+        {/* Kitchen Attendance Card - NEW */}
+        <div className="bg-gradient-to-br from-orange-500 to-red-500 p-6 rounded-2xl shadow-lg text-white xl:col-span-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-orange-100 flex items-center gap-1">
+                <ChefHat className="w-4 h-4" /> Atenção Cozinha
+              </p>
+              <h3 className="text-4xl font-bold mt-2">{attendanceSummary.totalStudents}</h3>
+              <p className="text-sm text-orange-100 mt-1">Alunos Presentes Hoje</p>
+            </div>
+            <div className="p-3 bg-white/20 rounded-xl">
+              <Users className="w-8 h-8" />
+            </div>
+          </div>
+          {attendanceSummary.byShift.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-white/20">
+              <p className="text-xs text-orange-100 mb-2">Por Turno:</p>
+              <div className="flex flex-wrap gap-2">
+                {attendanceSummary.byShift.map(shift => (
+                  <span key={shift.shift} className="bg-white/20 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                    {shift.shift === 'morning' ? '☀️ Manhã' : shift.shift === 'afternoon' ? '🌅 Tarde' : '🌙 Integral'}: {shift.count}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
           <div className="flex justify-between items-start">
             <div>
@@ -93,21 +144,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ inventory, logs, supplyLog
             </div>
             <div className="p-3 bg-red-100 text-red-600 rounded-xl">
               <TrendingDown className="w-6 h-6" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Refeições Servidas</p>
-              <h3 className="text-3xl font-bold text-blue-600 mt-2">
-                {logs.reduce((acc, curr) => acc + curr.studentCount, 0)}
-              </h3>
-              <p className="text-xs text-gray-400 mt-1">Total acumulado</p>
-            </div>
-            <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
-              <TrendingDown className="w-6 h-6 rotate-180" />
             </div>
           </div>
         </div>
