@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut, Truck, Calculator, FileText, CalendarDays, Trash2, Calendar as CalendarIcon, TrendingUp, Clock, ChefHat, Users, Bell, GraduationCap, School, Briefcase, BookOpen, ClipboardCheck, UserCheck, Building2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut, Truck, Calculator, FileText, CalendarDays, Trash2, Calendar as CalendarIcon, TrendingUp, Clock, ChefHat, Users, Bell, GraduationCap, School, Briefcase, BookOpen, ClipboardCheck, UserCheck, Building2, ChevronDown, ChevronRight } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface SidebarProps {
@@ -10,11 +10,22 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setActiveTab, switchRole }) => {
+  const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>({
+    school: true,
+    kitchen: true,
+    control: true,
+    admin: false
+  });
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
   const menuItems = currentRole === 'admin'
     ? [
       { id: 'dashboard', label: 'Visão Geral', icon: LayoutDashboard, section: 'main' },
       { id: 'notifications', label: 'Notificações', icon: Bell, section: 'main' },
-      
+
       // GESTÃO ESCOLAR
       { id: 'attendance-dashboard', label: '📊 Presença Hoje', icon: UserCheck, section: 'school' },
       { id: 'attendance-register', label: 'Fazer Chamada', icon: ClipboardCheck, section: 'school' },
@@ -24,7 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       { id: 'grades', label: 'Séries', icon: BookOpen, section: 'school' },
       { id: 'staff', label: 'Direção', icon: Briefcase, section: 'school' },
       { id: 'school-info', label: 'Dados da Escola', icon: Building2, section: 'school' },
-      
+
       // MERENDA
       { id: 'inventory', label: 'Estoque', icon: ShoppingBasket, section: 'kitchen' },
       { id: 'supply', label: 'Entradas', icon: Truck, section: 'kitchen' },
@@ -33,12 +44,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       { id: 'recipe-manager', label: 'Receitas', icon: ChefHat, section: 'kitchen' },
       { id: 'calculator', label: 'Calculadora', icon: Calculator, section: 'kitchen' },
       { id: 'weekly-menu', label: 'Cardápio', icon: CalendarDays, section: 'kitchen' },
-      
+
       // CONTROLES
       { id: 'school-calendar', label: 'Calendário Escolar', icon: CalendarIcon, section: 'control' },
       { id: 'weekly-control', label: 'Controle Semanal', icon: Clock, section: 'control' },
       { id: 'monthly-control', label: 'Controle Mensal', icon: TrendingUp, section: 'control' },
-      
+
       // ADMIN
       { id: 'supplier-manager', label: 'Fornecedores', icon: Truck, section: 'admin' },
       { id: 'reports', label: 'Relatórios', icon: FileText, section: 'admin' },
@@ -87,76 +98,116 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
               ))}
 
               {/* School Section */}
-              <div className="pt-4 pb-2 px-2">
-                <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider">Gestão Escolar</p>
-              </div>
-              {menuItems.filter(item => item.section === 'school').map((item) => (
+              <div className="pt-2">
                 <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${activeTab === item.id
-                    ? 'bg-emerald-700 text-white shadow-md'
-                    : 'text-emerald-100 hover:bg-emerald-800'
-                    }`}
+                  onClick={() => toggleSection('school')}
+                  className="w-full flex items-center justify-between px-2 py-2 text-emerald-400 hover:text-emerald-300 transition-colors"
                 >
-                  <item.icon className="w-4 h-4" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">Gestão Escolar</span>
+                  {expandedSections.school ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 </button>
-              ))}
+                {expandedSections.school && (
+                  <div className="space-y-1 animate-fade-in-down">
+                    {menuItems.filter(item => item.section === 'school').map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${activeTab === item.id
+                          ? 'bg-emerald-700 text-white shadow-md'
+                          : 'text-emerald-100 hover:bg-emerald-800'
+                          }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span className="font-medium">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Kitchen Section */}
-              <div className="pt-4 pb-2 px-2">
-                <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider">Merenda</p>
-              </div>
-              {menuItems.filter(item => item.section === 'kitchen').map((item) => (
+              <div className="pt-2">
                 <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${activeTab === item.id
-                    ? 'bg-emerald-700 text-white shadow-md'
-                    : 'text-emerald-100 hover:bg-emerald-800'
-                    }`}
+                  onClick={() => toggleSection('kitchen')}
+                  className="w-full flex items-center justify-between px-2 py-2 text-emerald-400 hover:text-emerald-300 transition-colors"
                 >
-                  <item.icon className="w-4 h-4" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">Merenda</span>
+                  {expandedSections.kitchen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 </button>
-              ))}
+                {expandedSections.kitchen && (
+                  <div className="space-y-1 animate-fade-in-down">
+                    {menuItems.filter(item => item.section === 'kitchen').map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${activeTab === item.id
+                          ? 'bg-emerald-700 text-white shadow-md'
+                          : 'text-emerald-100 hover:bg-emerald-800'
+                          }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span className="font-medium">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Control Section */}
-              <div className="pt-4 pb-2 px-2">
-                <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider">Controles</p>
-              </div>
-              {menuItems.filter(item => item.section === 'control').map((item) => (
+              <div className="pt-2">
                 <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${activeTab === item.id
-                    ? 'bg-emerald-700 text-white shadow-md'
-                    : 'text-emerald-100 hover:bg-emerald-800'
-                    }`}
+                  onClick={() => toggleSection('control')}
+                  className="w-full flex items-center justify-between px-2 py-2 text-emerald-400 hover:text-emerald-300 transition-colors"
                 >
-                  <item.icon className="w-4 h-4" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">Controles</span>
+                  {expandedSections.control ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 </button>
-              ))}
+                {expandedSections.control && (
+                  <div className="space-y-1 animate-fade-in-down">
+                    {menuItems.filter(item => item.section === 'control').map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${activeTab === item.id
+                          ? 'bg-emerald-700 text-white shadow-md'
+                          : 'text-emerald-100 hover:bg-emerald-800'
+                          }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span className="font-medium">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Admin Section */}
-              <div className="pt-4 pb-2 px-2">
-                <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider">Administração</p>
-              </div>
-              {menuItems.filter(item => item.section === 'admin').map((item) => (
+              <div className="pt-2">
                 <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${activeTab === item.id
-                    ? 'bg-emerald-700 text-white shadow-md'
-                    : 'text-emerald-100 hover:bg-emerald-800'
-                    }`}
+                  onClick={() => toggleSection('admin')}
+                  className="w-full flex items-center justify-between px-2 py-2 text-emerald-400 hover:text-emerald-300 transition-colors"
                 >
-                  <item.icon className="w-4 h-4" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">Administração</span>
+                  {expandedSections.admin ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                 </button>
-              ))}
+                {expandedSections.admin && (
+                  <div className="space-y-1 animate-fade-in-down">
+                    {menuItems.filter(item => item.section === 'admin').map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${activeTab === item.id
+                          ? 'bg-emerald-700 text-white shadow-md'
+                          : 'text-emerald-100 hover:bg-emerald-800'
+                          }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span className="font-medium">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             // Cook menu - simple list
