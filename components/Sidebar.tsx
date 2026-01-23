@@ -65,6 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       { id: 'school-info', label: 'Dados da Escola', icon: Building2, section: 'school' },
 
       // MERENDA
+      { id: 'kitchen-dashboard', label: 'Dashboard Cozinha', icon: ChefHat, section: 'kitchen' },
       { id: 'inventory', label: 'Estoque', icon: ShoppingBasket, section: 'kitchen' },
       { id: 'supply', label: 'Entradas', icon: Truck, section: 'kitchen' },
       { id: 'daily-log', label: 'Registro Diário', icon: Utensils, section: 'kitchen' },
@@ -84,7 +85,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       { id: 'insights', label: 'IA Insights', icon: BrainCircuit, section: 'admin' },
     ]
     : [
-      { id: 'attendance-dashboard', label: '📊 Presença Hoje', icon: UserCheck, section: 'main' },
+      { id: 'kitchen-dashboard', label: '📊 Dashboard Cozinha', icon: ChefHat, section: 'main' },
+      { id: 'attendance-dashboard', label: 'Presença Hoje', icon: UserCheck, section: 'main' },
       { id: 'daily-log', label: 'Registro Diário', icon: Utensils, section: 'main' },
       { id: 'waste-tracker', label: 'Desperdícios', icon: Trash2, section: 'main' },
       { id: 'inventory', label: 'Estoque (Consulta)', icon: ShoppingBasket, section: 'main' },
