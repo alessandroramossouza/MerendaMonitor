@@ -399,8 +399,14 @@ const App: React.FC = () => {
         )}
 
         {/* ASSET INVENTORY */}
-        {activeTab === 'school-assets' && (
-          <SchoolAssetManager />
+        {activeTab.startsWith('school-assets') && (
+          <SchoolAssetManager
+            initialFilter={
+              activeTab === 'school-assets' ? 'all' :
+                activeTab === 'school-assets-general' ? 'general' :
+                  activeTab.replace('school-assets-', '')
+            }
+          />
         )}
       </main>
     </div>

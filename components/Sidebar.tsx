@@ -2,6 +2,8 @@ import React from 'react';
 import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut, Truck, Calculator, FileText, CalendarDays, Trash2, Calendar as CalendarIcon, TrendingUp, Clock, ChefHat, Users, Bell, GraduationCap, School, Briefcase, BookOpen, ClipboardCheck, UserCheck, Building2, ChevronDown, ChevronRight, Boxes } from 'lucide-react';
 import { UserRole } from '../types';
 
+import { supabase } from '../services/supabase';
+
 interface SidebarProps {
   currentRole: UserRole;
   activeTab: string;
@@ -14,8 +16,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
     school: true,
     kitchen: true,
     control: true,
-    admin: false
+    admin: false,
+    inventory: true
   });
+
+  const [classrooms, setClassrooms] = React.useState<{ id: string, name: string }[]>([]);
+
+  React.useEffect(() => {
+    if (currentRole === 'admin') {
+      fetchClassrooms();
+    }
+  }, [currentRole]);
+
+  const fetchClassrooms = async () => {
+    try {
+      const { data } = await supabase
+        .from('classrooms')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+
+      if (data) {
+        setClassrooms(data);
+      }
+    } catch (e) {
+      console.error('Error loading sidebar classrooms', e);
+    }
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -31,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       { id: 'attendance-register', label: 'Fazer Chamada', icon: ClipboardCheck, section: 'school' },
       { id: 'students', label: 'Alunos', icon: Users, section: 'school' },
       { id: 'classrooms', label: 'Salas/Turmas', icon: School, section: 'school' },
-      { id: 'school-assets', label: 'Inventário de Salas', icon: Boxes, section: 'school' },
+      // Removed school-assets from here
       { id: 'teachers', label: 'Professores', icon: GraduationCap, section: 'school' },
       { id: 'grades', label: 'Séries', icon: BookOpen, section: 'school' },
       { id: 'staff', label: 'Direção', icon: Briefcase, section: 'school' },
@@ -120,6 +147,62 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
                       >
                         <item.icon className="w-4 h-4" />
                         <span className="font-medium">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* INVENTORY SECTION (DYNAMIC) */}
+              <div className="pt-2">
+                <button
+                  onClick={() => toggleSection('inventory')}
+                  className="w-full flex items-center justify-between px-2 py-2 text-emerald-400 hover:text-emerald-300 transition-colors"
+                >
+                  <span className="text-xs font-bold uppercase tracking-wider">Inventários</span>
+                  {expandedSections.inventory ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </button>
+                {expandedSections.inventory && (
+                  <div className="space-y-1 animate-fade-in-down">
+                    {/* All */}
+                    <button
+                      onClick={() => setActiveTab('school-assets')}
+                      className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${activeTab === 'school-assets' || activeTab === 'school-assets-all'
+                        ? 'bg-emerald-700 text-white shadow-md'
+                        : 'text-emerald-100 hover:bg-emerald-800'
+                        }`}
+                    >
+                      <Boxes className="w-4 h-4" />
+                      <span className="font-medium">Todos os Locais</span>
+                    </button>
+
+                    {/* General */}
+                    <button
+                      onClick={() => setActiveTab('school-assets-general')}
+                      className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${activeTab === 'school-assets-general'
+                        ? 'bg-emerald-700 text-white shadow-md'
+                        : 'text-emerald-100 hover:bg-emerald-800'
+                        }`}
+                    >
+                      <span className="w-4 h-4 flex items-center justify-center">🏢</span>
+                      <span className="font-medium">Área Comum</span>
+                    </button>
+
+                    {classrooms.length > 0 && (
+                      <div className="px-4 py-1 mt-1 text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Salas de Aula</div>
+                    )}
+
+                    {classrooms.map(room => (
+                      <button
+                        key={room.id}
+                        onClick={() => setActiveTab(`school-assets-${room.id}`)}
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${activeTab === `school-assets-${room.id}`
+                          ? 'bg-emerald-700 text-white shadow-md'
+                          : 'text-emerald-100 hover:bg-emerald-800'
+                          }`}
+                      >
+                        <span className="w-4 h-4 flex items-center justify-center">🎓</span>
+                        <span className="font-medium truncate">{room.name}</span>
                       </button>
                     ))}
                   </div>
