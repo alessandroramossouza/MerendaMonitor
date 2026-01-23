@@ -7,12 +7,15 @@ interface TeacherManagerProps {
   schoolId?: string;
 }
 
-export const TeacherManager: React.FC<TeacherManagerProps> = ({ schoolId = '00000000-0000-0000-0000-000000000000' }) => {
+export const TeacherManager: React.FC<TeacherManagerProps> = ({ schoolId: initialPropSchoolId = '00000000-0000-0000-0000-000000000000' }) => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+
+  // State to hold the actual valid school ID
+  const [schoolId, setSchoolId] = useState(initialPropSchoolId);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -27,8 +30,28 @@ export const TeacherManager: React.FC<TeacherManagerProps> = ({ schoolId = '0000
   });
 
   React.useEffect(() => {
+    // If we have the dummy ID, try to fetch the real one
+    if (schoolId === '00000000-0000-0000-0000-000000000000') {
+      fetchSchoolId();
+    }
     fetchTeachers();
   }, []);
+
+  const fetchSchoolId = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id')
+        .limit(1)
+        .single();
+
+      if (data) {
+        setSchoolId(data.id);
+      }
+    } catch (error) {
+      console.error('Error fetching school ID', error);
+    }
+  };
 
   const fetchTeachers = async () => {
     try {
@@ -65,6 +88,12 @@ export const TeacherManager: React.FC<TeacherManagerProps> = ({ schoolId = '0000
     e.preventDefault();
     if (!formData.name) {
       alert('Preencha o nome do professor');
+      return;
+    }
+
+    // Validation for School ID
+    if (schoolId === '00000000-0000-0000-0000-000000000000') {
+      alert('Erro: Nenhuma escola encontrada. Por favor, preencha os "Dados da Escola" primeiro.');
       return;
     }
 
