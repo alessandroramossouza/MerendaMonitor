@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { School } from '../types-school';
-import { Building2, Save, MapPin, Phone, Mail, FileText } from 'lucide-react';
+import { Building2, Save, MapPin, Phone, Mail, FileText, Edit2 } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 export const SchoolManager: React.FC = () => {
