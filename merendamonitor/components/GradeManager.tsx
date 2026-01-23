@@ -7,12 +7,15 @@ interface GradeManagerProps {
   schoolId?: string;
 }
 
-export const GradeManager: React.FC<GradeManagerProps> = ({ schoolId = '00000000-0000-0000-0000-000000000000' }) => {
+export const GradeManager: React.FC<GradeManagerProps> = ({ schoolId: initialPropSchoolId = '00000000-0000-0000-0000-000000000000' }) => {
   const [grades, setGrades] = useState<Grade[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+
+  // State to hold the actual valid school ID
+  const [schoolId, setSchoolId] = useState(initialPropSchoolId);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -21,8 +24,28 @@ export const GradeManager: React.FC<GradeManagerProps> = ({ schoolId = '00000000
   });
 
   React.useEffect(() => {
+    // If we have the dummy ID, try to fetch the real one
+    if (schoolId === '00000000-0000-0000-0000-000000000000') {
+      fetchSchoolId();
+    }
     fetchGrades();
   }, []);
+
+  const fetchSchoolId = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id')
+        .limit(1)
+        .single();
+
+      if (data) {
+        setSchoolId(data.id);
+      }
+    } catch (error) {
+      console.error('Error fetching school ID', error);
+    }
+  };
 
   const fetchGrades = async () => {
     try {
@@ -50,6 +73,13 @@ export const GradeManager: React.FC<GradeManagerProps> = ({ schoolId = '00000000
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation for School ID
+    if (schoolId === '00000000-0000-0000-0000-000000000000') {
+      alert('Erro: Nenhuma escola encontrada. Por favor, preencha os "Dados da Escola" primeiro.');
+      return;
+    }
+
     setLoading(true);
     try {
       const gradeData = {
