@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { DailyAttendance, Classroom, SchoolDailyPresence } from '../types-school';
-import { ClipboardCheck, Users, Check, X, Calendar, TrendingUp, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Users, Check, X, Calendar, TrendingUp, AlertCircle, Edit2 } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 interface AttendanceRegisterProps {
@@ -150,7 +150,7 @@ export const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ schoolId
 
   const startEdit = (classroom: Classroom) => {
     const existing = attendances.find(a => a.classroomId === classroom.id && a.shift === classroom.shift);
-    
+
     if (existing) {
       setFormData({
         presentCount: existing.presentCount,
@@ -162,7 +162,7 @@ export const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ schoolId
         notes: ''
       });
     }
-    
+
     setEditingClassroomId(classroom.id);
   };
 
@@ -264,7 +264,7 @@ export const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ schoolId
           <div>
             <p className="text-amber-800 font-medium">Atenção!</p>
             <p className="text-amber-700 text-sm">
-              Ainda faltam {summary.classroomsTotal - summary.classroomsRegistered} salas para registrar presença. 
+              Ainda faltam {summary.classroomsTotal - summary.classroomsRegistered} salas para registrar presença.
               A merendeira precisa que TODAS as salas registrem presença para calcular a quantidade correta de comida.
             </p>
           </div>
@@ -321,7 +321,7 @@ export const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ schoolId
                       )}
                     </div>
                     <p className="text-sm text-gray-600">
-                      Professor: {classroom.teacherName || 'Não atribuído'} | 
+                      Professor: {classroom.teacherName || 'Não atribuído'} |
                       Total de alunos: <strong>{classroom.totalStudents}</strong>
                     </p>
 
@@ -400,11 +400,10 @@ export const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ schoolId
                   {!isEditing && (
                     <button
                       onClick={() => startEdit(classroom)}
-                      className={`px-6 py-3 rounded-lg font-bold flex items-center gap-2 ${
-                        isRegistered
+                      className={`px-6 py-3 rounded-lg font-bold flex items-center gap-2 ${isRegistered
                           ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                           : 'bg-green-600 text-white hover:bg-green-700'
-                      }`}
+                        }`}
                     >
                       {isRegistered ? (
                         <>
