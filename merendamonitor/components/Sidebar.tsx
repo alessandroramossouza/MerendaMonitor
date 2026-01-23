@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut, Truck, Calculator, FileText, CalendarDays, Trash2, Calendar as CalendarIcon, TrendingUp, Clock, ChefHat, Users, Bell, GraduationCap, School, Briefcase, BookOpen, ClipboardCheck, UserCheck, Building2, ChevronDown, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, ShoppingBasket, Utensils, PieChart, BrainCircuit, LogOut, Truck, Calculator, FileText, CalendarDays, Trash2, Calendar as CalendarIcon, TrendingUp, Clock, ChefHat, Users, Bell, GraduationCap, School, Briefcase, BookOpen, ClipboardCheck, UserCheck, Building2, ChevronDown, ChevronRight, Boxes } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface SidebarProps {
@@ -31,6 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       { id: 'attendance-register', label: 'Fazer Chamada', icon: ClipboardCheck, section: 'school' },
       { id: 'students', label: 'Alunos', icon: Users, section: 'school' },
       { id: 'classrooms', label: 'Salas/Turmas', icon: School, section: 'school' },
+      { id: 'school-assets', label: 'Inventário de Salas', icon: Boxes, section: 'school' },
       { id: 'teachers', label: 'Professores', icon: GraduationCap, section: 'school' },
       { id: 'grades', label: 'Séries', icon: BookOpen, section: 'school' },
       { id: 'staff', label: 'Direção', icon: Briefcase, section: 'school' },
