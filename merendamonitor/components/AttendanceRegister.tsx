@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { DailyAttendance, Classroom, SchoolDailyPresence } from '../types-school';
 import { ClipboardCheck, Users, Check, X, Calendar, TrendingUp, AlertCircle, Edit2 } from 'lucide-react';
 import { supabase } from '../services/supabase';
@@ -7,7 +7,9 @@ interface AttendanceRegisterProps {
   schoolId?: string;
 }
 
-export const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ schoolId = '00000000-0000-0000-0000-000000000000' }) => {
+const DUMMY_SCHOOL_ID = '00000000-0000-0000-0000-000000000000';
+
+export const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ schoolId: propSchoolId = DUMMY_SCHOOL_ID }) => {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [attendances, setAttendances] = useState<DailyAttendance[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -15,12 +17,52 @@ export const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ schoolId
   const [successMsg, setSuccessMsg] = useState('');
   const [editingClassroomId, setEditingClassroomId] = useState<string | null>(null);
 
+  // State for validated school ID
+  const [validatedSchoolId, setValidatedSchoolId] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     presentCount: 0,
     notes: ''
   });
 
-  React.useEffect(() => {
+  // Fetch and validate school ID on mount
+  useEffect(() => {
+    const fetchSchoolId = async () => {
+      try {
+        // If propSchoolId is not dummy, validate it exists
+        if (propSchoolId && propSchoolId !== DUMMY_SCHOOL_ID) {
+          const { data } = await supabase
+            .from('schools')
+            .select('id')
+            .eq('id', propSchoolId)
+            .single();
+          if (data) {
+            setValidatedSchoolId(data.id);
+            return;
+          }
+        }
+
+        // Otherwise, fetch the first available school
+        const { data, error } = await supabase
+          .from('schools')
+          .select('id')
+          .limit(1)
+          .single();
+
+        if (data && !error) {
+          setValidatedSchoolId(data.id);
+        } else {
+          console.error('No school found in database');
+        }
+      } catch (error) {
+        console.error('Error fetching school ID:', error);
+      }
+    };
+
+    fetchSchoolId();
+  }, [propSchoolId]);
+
+  useEffect(() => {
     fetchData();
   }, [selectedDate]);
 
@@ -97,12 +139,18 @@ export const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ schoolId
       return;
     }
 
+    // Validate that we have a valid school ID
+    if (!validatedSchoolId) {
+      alert('Erro: Nenhuma escola encontrada no sistema. Por favor, cadastre uma escola em "Gestão Escolar → Dados da Escola" antes de registrar presenças.');
+      return;
+    }
+
     setLoading(true);
     try {
       const existingAttendance = attendances.find(a => a.classroomId === classroom.id && a.shift === classroom.shift);
 
       const attendanceData = {
-        school_id: schoolId,
+        school_id: validatedSchoolId,
         classroom_id: classroom.id,
         date: selectedDate,
         shift: classroom.shift,
@@ -401,8 +449,8 @@ export const AttendanceRegister: React.FC<AttendanceRegisterProps> = ({ schoolId
                     <button
                       onClick={() => startEdit(classroom)}
                       className={`px-6 py-3 rounded-lg font-bold flex items-center gap-2 ${isRegistered
-                          ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                          : 'bg-green-600 text-white hover:bg-green-700'
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                        : 'bg-green-600 text-white hover:bg-green-700'
                         }`}
                     >
                       {isRegistered ? (

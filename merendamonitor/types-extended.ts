@@ -156,14 +156,27 @@ export interface PeriodStats {
 // Notificações
 export interface Notification {
   id: string;
-  type: 'low_stock' | 'expiring' | 'waste_alert' | 'budget_alert' | 'general';
+  type: 'low_stock' | 'expiring' | 'waste_alert' | 'budget_alert' | 'attendance_alert' | 'general';
   severity: 'low' | 'medium' | 'high' | 'critical';
   title: string;
   message: string;
   relatedId?: string;
   relatedType?: string;
+  metadata?: Record<string, any>;
   read: boolean;
   createdAt: string;
+}
+
+// Notificação do banco de dados (Supabase)
+export interface DBNotification {
+  id: string;
+  school_id: string;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  metadata?: Record<string, any>;
+  created_at: string;
 }
 
 // Configurações do Sistema

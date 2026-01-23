@@ -1,6 +1,7 @@
 import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
-import { Notification } from '../types-extended';
+import { Notification, DBNotification } from '../types-extended';
 import { calculateStockForecast } from './forecasting';
+import { supabase } from './supabase';
 
 /**
  * Check for low stock items
@@ -151,7 +152,7 @@ export const checkWasteThreshold = (
   threshold: number = 10
 ): Notification[] => {
   const notifications: Notification[] = [];
-  
+
   if (totalConsumed === 0) return notifications;
 
   const wastePercentage = (wasteAmount / totalConsumed) * 100;
@@ -284,13 +285,164 @@ export const getAllNotifications = (
  * Format notification for display
  */
 export const formatNotification = (notification: Notification): string => {
-  const icons = {
+  const icons: Record<string, string> = {
     low_stock: '📦',
     expiring: '⏰',
     waste_alert: '🗑️',
     budget_alert: '💰',
+    attendance_alert: '👩‍🍳',
     general: 'ℹ️'
   };
 
-  return `${icons[notification.type]} ${notification.title}: ${notification.message}`;
+  return `${icons[notification.type] || 'ℹ️'} ${notification.title}: ${notification.message}`;
 };
+
+/**
+ * Fetch notifications from database (attendance alerts, etc.)
+ */
+export const fetchDatabaseNotifications = async (): Promise<Notification[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.warn('Error fetching database notifications:', error.message);
+      return [];
+    }
+
+    if (!data) return [];
+
+    // Convert DBNotification to Notification format
+    return data.map((dbNotif: DBNotification) => ({
+      id: dbNotif.id,
+      type: (dbNotif.type || 'general') as Notification['type'],
+      severity: getSeverityFromType(dbNotif.type),
+      title: dbNotif.title,
+      message: dbNotif.message,
+      metadata: dbNotif.metadata,
+      read: dbNotif.is_read,
+      createdAt: dbNotif.created_at
+    }));
+  } catch (error) {
+    console.warn('Failed to fetch database notifications:', error);
+    return [];
+  }
+};
+
+/**
+ * Get severity based on notification type
+ */
+const getSeverityFromType = (type: string): Notification['severity'] => {
+  switch (type) {
+    case 'attendance_alert':
+      return 'medium';
+    case 'low_stock':
+    case 'waste_alert':
+      return 'high';
+    case 'expiring':
+      return 'critical';
+    default:
+      return 'low';
+  }
+};
+
+/**
+ * Mark notification as read in database
+ */
+export const markNotificationAsRead = async (notificationId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId);
+
+    if (error) {
+      console.error('Error marking notification as read:', error.message);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Failed to mark notification as read:', error);
+    return false;
+  }
+};
+
+/**
+ * Mark all notifications as read in database
+ */
+export const markAllNotificationsAsRead = async (): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('Error marking all notifications as read:', error.message);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Failed to mark all notifications as read:', error);
+    return false;
+  }
+};
+
+/**
+ * Get today's attendance summary for kitchen
+ */
+export const getTodayAttendanceSummary = async (): Promise<{
+  totalStudents: number;
+  byShift: { shift: string; count: number }[];
+  byClassroom: { name: string; count: number }[];
+}> => {
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    const { data, error } = await supabase
+      .from('daily_attendance')
+      .select(`
+        students_present,
+        shift,
+        classrooms (name)
+      `)
+      .eq('attendance_date', today);
+
+    if (error) {
+      console.warn('Error fetching attendance summary:', error.message);
+      return { totalStudents: 0, byShift: [], byClassroom: [] };
+    }
+
+    if (!data || data.length === 0) {
+      return { totalStudents: 0, byShift: [], byClassroom: [] };
+    }
+
+    const totalStudents = data.reduce((sum, record) => sum + (record.students_present || 0), 0);
+
+    // Group by shift
+    const shiftMap = new Map<string, number>();
+    data.forEach(record => {
+      const current = shiftMap.get(record.shift) || 0;
+      shiftMap.set(record.shift, current + (record.students_present || 0));
+    });
+    const byShift = Array.from(shiftMap.entries()).map(([shift, count]) => ({ shift, count }));
+
+    // Group by classroom
+    const classroomMap = new Map<string, number>();
+    data.forEach(record => {
+      const classroomName = (record.classrooms as any)?.name || 'Desconhecida';
+      const current = classroomMap.get(classroomName) || 0;
+      classroomMap.set(classroomName, current + (record.students_present || 0));
+    });
+    const byClassroom = Array.from(classroomMap.entries()).map(([name, count]) => ({ name, count }));
+
+    return { totalStudents, byShift, byClassroom };
+  } catch (error) {
+    console.warn('Failed to fetch attendance summary:', error);
+    return { totalStudents: 0, byShift: [], byClassroom: [] };
+  }
+};
+

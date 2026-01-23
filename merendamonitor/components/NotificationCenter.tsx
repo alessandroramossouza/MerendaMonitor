@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Ingredient, ConsumptionLog, SupplyLog } from '../types';
 import { Notification } from '../types-extended';
-import { Bell, BellOff, AlertTriangle, Clock, DollarSign, Package, X, CheckCircle2 } from 'lucide-react';
-import { getAllNotifications } from '../services/notifications';
+import { Bell, BellOff, AlertTriangle, Clock, DollarSign, Package, X, CheckCircle2, Users } from 'lucide-react';
+import { getAllNotifications, fetchDatabaseNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/notifications';
 
 interface NotificationCenterProps {
   inventory: Ingredient[];
@@ -13,10 +13,37 @@ interface NotificationCenterProps {
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({ inventory, logs, supplyLogs }) => {
   const [readNotifications, setReadNotifications] = useState<Set<string>>(new Set());
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
+  const [databaseNotifications, setDatabaseNotifications] = useState<Notification[]>([]);
 
-  const notifications = useMemo(() => {
+  // Fetch database notifications on mount
+  useEffect(() => {
+    const loadDatabaseNotifications = async () => {
+      const dbNotifs = await fetchDatabaseNotifications();
+      setDatabaseNotifications(dbNotifs);
+
+      // Mark read notifications
+      const readIds = new Set(dbNotifs.filter(n => n.read).map(n => n.id));
+      setReadNotifications(prev => new Set([...prev, ...readIds]));
+    };
+    loadDatabaseNotifications();
+  }, []);
+
+  const localNotifications = useMemo(() => {
     return getAllNotifications(inventory, logs, supplyLogs);
   }, [inventory, logs, supplyLogs]);
+
+  // Combine local and database notifications
+  const notifications = useMemo(() => {
+    const combined = [...localNotifications, ...databaseNotifications];
+    // Sort by date (newest first) and severity
+    const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    combined.sort((a, b) => {
+      const dateCompare = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (dateCompare !== 0) return dateCompare;
+      return severityOrder[a.severity] - severityOrder[b.severity];
+    });
+    return combined;
+  }, [localNotifications, databaseNotifications]);
 
   const unreadNotifications = useMemo(() => {
     return notifications.filter(n => !readNotifications.has(n.id));
@@ -24,12 +51,18 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ inventor
 
   const displayedNotifications = showOnlyUnread ? unreadNotifications : notifications;
 
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
     setReadNotifications(prev => new Set([...prev, id]));
+    // If it's a database notification, also update in Supabase
+    if (databaseNotifications.find(n => n.id === id)) {
+      await markNotificationAsRead(id);
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setReadNotifications(new Set(notifications.map(n => n.id)));
+    // Mark all database notifications as read
+    await markAllNotificationsAsRead();
   };
 
   const getSeverityColor = (severity: Notification['severity']) => {
@@ -55,6 +88,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ inventor
         return <DollarSign className="w-6 h-6" />;
       case 'waste_alert':
         return <AlertTriangle className="w-6 h-6" />;
+      case 'attendance_alert':
+        return <Users className="w-6 h-6" />;
       default:
         return <Bell className="w-6 h-6" />;
     }
@@ -215,9 +250,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ inventor
             displayedNotifications.map(notification => (
               <div
                 key={notification.id}
-                className={`p-6 ${getSeverityColor(notification.severity)} ${
-                  readNotifications.has(notification.id) ? 'opacity-60' : ''
-                } hover:bg-opacity-80 transition-all`}
+                className={`p-6 ${getSeverityColor(notification.severity)} ${readNotifications.has(notification.id) ? 'opacity-60' : ''
+                  } hover:bg-opacity-80 transition-all`}
               >
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
@@ -274,8 +308,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ inventor
         <div>
           <p className="text-purple-800 font-medium">Sobre as Notificações</p>
           <p className="text-purple-700 text-sm mt-1">
-            As notificações são geradas automaticamente com base em alertas de estoque, validade, 
-            previsões de consumo e outros indicadores importantes. Mantenha-se atualizado para 
+            As notificações são geradas automaticamente com base em alertas de estoque, validade,
+            previsões de consumo e outros indicadores importantes. Mantenha-se atualizado para
             evitar problemas operacionais.
           </p>
         </div>
