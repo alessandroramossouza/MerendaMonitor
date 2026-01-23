@@ -33,6 +33,7 @@ import { GradeManager } from './components/GradeManager';
 import { AttendanceRegister } from './components/AttendanceRegister';
 import { AttendanceDashboard } from './components/AttendanceDashboard';
 import { SchoolAssetManager } from './components/SchoolAssetManager';
+import { KitchenDashboard } from './components/KitchenDashboard';
 
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>('cook');
@@ -396,6 +397,10 @@ const App: React.FC = () => {
 
         {activeTab === 'attendance-dashboard' && (
           <AttendanceDashboard />
+        )}
+
+        {activeTab === 'kitchen-dashboard' && (
+          <KitchenDashboard />
         )}
 
         {/* ASSET INVENTORY */}
