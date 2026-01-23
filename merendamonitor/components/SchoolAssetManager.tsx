@@ -35,9 +35,13 @@ interface SchoolAsset {
 
 interface SchoolAssetManagerProps {
     schoolId?: string;
+    initialFilter?: string;
 }
 
-export const SchoolAssetManager: React.FC<SchoolAssetManagerProps> = ({ schoolId: initialPropSchoolId = '00000000-0000-0000-0000-000000000000' }) => {
+export const SchoolAssetManager: React.FC<SchoolAssetManagerProps> = ({
+    schoolId: initialPropSchoolId = '00000000-0000-0000-0000-000000000000',
+    initialFilter = 'all'
+}) => {
     const [assets, setAssets] = useState<SchoolAsset[]>([]);
     const [classrooms, setClassrooms] = useState<Classroom[]>([]);
     const [schoolId, setSchoolId] = useState(initialPropSchoolId);
@@ -46,8 +50,12 @@ export const SchoolAssetManager: React.FC<SchoolAssetManagerProps> = ({ schoolId
     const [editingId, setEditingId] = useState<string | null>(null);
 
     // Filtering
-    const [selectedClassroom, setSelectedClassroom] = useState<string>('all');
+    const [selectedClassroom, setSelectedClassroom] = useState<string>(initialFilter);
     const [searchTerm, setSearchTerm] = useState('');
+
+    React.useEffect(() => {
+        setSelectedClassroom(initialFilter);
+    }, [initialFilter]);
 
     const [formData, setFormData] = useState<Partial<SchoolAsset>>({
         name: '',
