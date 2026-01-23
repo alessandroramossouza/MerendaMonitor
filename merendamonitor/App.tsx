@@ -14,7 +14,7 @@ import { Login } from './components/Login';
 import { Ingredient, ConsumptionLog, UserRole, SupplyLog } from './types';
 import { supabase } from './services/supabase';
 
-// NEW COMPONENTS
+// NEW COMPONENTS - MERENDA CONTROL
 import { WasteTracker } from './components/WasteTracker';
 import { SchoolCalendar } from './components/SchoolCalendar';
 import { WeeklyControl } from './components/WeeklyControl';
@@ -22,6 +22,16 @@ import { MonthlyControl } from './components/MonthlyControl';
 import { RecipeManager } from './components/RecipeManager';
 import { SupplierManager } from './components/SupplierManager';
 import { NotificationCenter } from './components/NotificationCenter';
+
+// NEW COMPONENTS - SCHOOL MANAGEMENT
+import { SchoolManager } from './components/SchoolManager';
+import { StudentManager } from './components/StudentManager';
+import { ClassroomManager } from './components/ClassroomManager';
+import { TeacherManager } from './components/TeacherManager';
+import { StaffManager } from './components/StaffManager';
+import { GradeManager } from './components/GradeManager';
+import { AttendanceRegister } from './components/AttendanceRegister';
+import { AttendanceDashboard } from './components/AttendanceDashboard';
 
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>('cook');
@@ -352,6 +362,39 @@ const App: React.FC = () => {
 
         {activeTab === 'notifications' && role === 'admin' && (
           <NotificationCenter inventory={inventory} logs={logs} supplyLogs={supplyLogs} />
+        )}
+
+        {/* SCHOOL MANAGEMENT */}
+        {activeTab === 'school-info' && role === 'admin' && (
+          <SchoolManager />
+        )}
+
+        {activeTab === 'students' && role === 'admin' && (
+          <StudentManager />
+        )}
+
+        {activeTab === 'classrooms' && role === 'admin' && (
+          <ClassroomManager />
+        )}
+
+        {activeTab === 'teachers' && role === 'admin' && (
+          <TeacherManager />
+        )}
+
+        {activeTab === 'staff' && role === 'admin' && (
+          <StaffManager />
+        )}
+
+        {activeTab === 'grades' && role === 'admin' && (
+          <GradeManager />
+        )}
+
+        {activeTab === 'attendance-register' && (
+          <AttendanceRegister />
+        )}
+
+        {activeTab === 'attendance-dashboard' && (
+          <AttendanceDashboard />
         )}
       </main>
     </div>
