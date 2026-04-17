@@ -106,7 +106,7 @@ export const Reports: React.FC<ReportsProps> = ({ inventory, logs, supplyLogs })
 
         // Sheet 1: Resumo
         const resumoData = [
-            ['Relatório MerendaMonitor', formatPeriod()],
+            ['Relatório Controle Escolar', formatPeriod()],
             [],
             ['Métrica', 'Valor'],
             ['Total Recebido (kg)', summary.totalReceived.toFixed(1)],
@@ -189,7 +189,7 @@ export const Reports: React.FC<ReportsProps> = ({ inventory, logs, supplyLogs })
         doc.setFontSize(26);
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.text('MerendaMonitor', 20, 24);
+        doc.text('Controle Escolar', 20, 24);
 
         // Subtitle
         doc.setFontSize(10);

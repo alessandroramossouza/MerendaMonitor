@@ -101,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, setAct
       <div className="p-6 border-b border-emerald-800">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Utensils className="w-8 h-8 text-emerald-400" />
-          MerendaMonitor
+          Controle Escolar
         </h1>
         <p className="text-xs text-emerald-300 mt-2 uppercase tracking-wider font-semibold">
           {currentRole === 'admin' ? 'Administrador' : 'Cozinha'}

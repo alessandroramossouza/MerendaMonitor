@@ -55,7 +55,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                     <div className="inline-flex p-4 bg-green-700 rounded-full mb-4 shadow-inner">
                         <Utensils className="w-12 h-12 text-green-100" />
                     </div>
-                    <h1 className="text-3xl font-bold text-white">MerendaMonitor</h1>
+                    <h1 className="text-3xl font-bold text-white">Controle Escolar</h1>
                     <p className="text-green-200 mt-2">Sistema de Gestão Escolar</p>
                 </div>
 
